@@ -38,7 +38,23 @@ namespace Protobuf.Protocol
 
         public bool TryParseMessage(ref ReadOnlySequence<byte> input, IInvocationBinder binder, out HubMessage message)
         {
-            throw new NotImplementedException();
+            if (input.Length < ProtobufHubProtocolConstants.HEADER_SIZE)
+            {
+                message = null;
+                return false;
+            }
+
+            var protobufMessageType = (int)input.Slice(0, 1).ToArray()[0];
+
+            if (protobufMessageType == HubProtocolConstants.PingMessageType)
+            {
+                message = PingMessage.Instance;
+                input = input.Slice(ProtobufHubProtocolConstants.HEADER_SIZE);
+                return true;
+            }
+
+            message = null;
+            return true;
         }
 
         public void WriteMessage(HubMessage message, IBufferWriter<byte> output)
