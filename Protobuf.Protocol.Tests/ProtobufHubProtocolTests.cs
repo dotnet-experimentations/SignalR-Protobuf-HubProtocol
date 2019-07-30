@@ -4,6 +4,8 @@ using System;
 using System.Buffers;
 using Protobuf.Protocol;
 using Xunit;
+using Microsoft.AspNetCore.SignalR;
+using Moq;
 
 namespace Protobuf.Protocol.Tests
 {
@@ -102,6 +104,21 @@ namespace Protobuf.Protocol.Tests
             var encodedMessage = writer.WrittenSpan;
 
             Assert.True(encodedMessage.Length >= ProtobufHubProtocolConstants.HEADER_SIZE, "The protobuf message size is written");
+        }
+
+        [Fact]
+        public void Protocol_Should_Not_Parse_Message_If_Less_Than_Header_Size()
+        {
+            var logger = new NullLogger<ProtobufHubProtocol>();
+            var binder = new Mock<IInvocationBinder>();
+
+            var protobufHubProtocol = new ProtobufHubProtocol(logger);
+
+            var encodedMessage = new ReadOnlySequence<byte>(new byte[] { 6, 0, 0, 0});
+            var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var pingMessage);
+
+            Assert.False(result);
+            Assert.Null(pingMessage);
         }
     }
 }
