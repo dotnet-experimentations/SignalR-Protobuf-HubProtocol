@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package SignalR.Protobuf.Protocol;
+
+message InvocationMessageProtobuf {
+
+}
+
+message StreamItemMessageProtobuf {
+
+}
+
+message CompletionMessageProtobuf {
+
+}
+
+message StreamInvocationMessageProtobuf {
+
+}
+
+message CancelInvocationMessageProtobuf {
+
+}
+
+message PingInvocationMessageProtobuf {
+
+}
+
+message CloseMessageProtobuf {
+
+}

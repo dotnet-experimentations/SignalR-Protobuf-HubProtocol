@@ -1,0 +1,18 @@
+<Project>
+  <PropertyGroup Label="Microsoft">
+    <MicrosoftAspNetCorePackageVersion>3.0.0-preview7*</MicrosoftAspNetCorePackageVersion>
+    <MicrosoftAzureSignalRPackageVersion>1.1.0-preview1*</MicrosoftAzureSignalRPackageVersion>
+    <MicrosoftAspNetCoreTestPackageVersion>[16.*, )</MicrosoftAspNetCoreTestPackageVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Protobuf">
+    <GoogleProtobufPackageVersion>[3.*, )</GoogleProtobufPackageVersion>
+    <GrpcToolsPackageVersion>[1.*, )</GrpcToolsPackageVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Tests">
+    <XunitPackageVersion>[2.*, )</XunitPackageVersion>
+    <XunitRunnerPackageVersion>[2.*, )</XunitRunnerPackageVersion>
+    <MoqPackageVersion>[4.*, )</MoqPackageVersion>
+  </PropertyGroup>
+</Project>
