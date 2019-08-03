@@ -38,7 +38,7 @@ namespace Protobuf.Protocol
 
         public bool TryParseMessage(ref ReadOnlySequence<byte> input, IInvocationBinder binder, out HubMessage message)
         {
-            if (input.Length < ProtobufHubProtocolConstants.HEADER_SIZE)
+            if (input.Length < ProtobufHubProtocolConstants.MESSAGE_HEADER_SIZE)
             {
                 message = null;
                 return false;
@@ -49,7 +49,7 @@ namespace Protobuf.Protocol
             if (protobufMessageType == HubProtocolConstants.PingMessageType)
             {
                 message = PingMessage.Instance;
-                input = input.Slice(ProtobufHubProtocolConstants.HEADER_SIZE);
+                input = input.Slice(ProtobufHubProtocolConstants.MESSAGE_HEADER_SIZE);
                 return true;
             }
 

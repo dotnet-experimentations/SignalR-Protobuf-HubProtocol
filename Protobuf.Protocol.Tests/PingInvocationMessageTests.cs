@@ -25,7 +25,7 @@ namespace Protobuf.Protocol.Tests
             var encodedMessage = new ReadOnlySequence<byte>(writer.WrittenSpan.ToArray());
             var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var pingMessage);
 
-            Assert.Equal(ProtobufHubProtocolConstants.HEADER_SIZE, writer.WrittenCount);
+            Assert.Equal(ProtobufHubProtocolConstants.MESSAGE_HEADER_SIZE, writer.WrittenCount);
             Assert.True(result);
             Assert.IsType<PingMessage>(pingMessage);
             Assert.NotNull(pingMessage);

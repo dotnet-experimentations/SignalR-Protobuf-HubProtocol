@@ -103,7 +103,7 @@ namespace Protobuf.Protocol.Tests
             protobufHubProtocol.WriteMessage(hubMessage, writer);
             var encodedMessage = writer.WrittenSpan;
 
-            Assert.True(encodedMessage.Length >= ProtobufHubProtocolConstants.HEADER_SIZE, "The protobuf message size is written");
+            Assert.True(encodedMessage.Length >= ProtobufHubProtocolConstants.MESSAGE_HEADER_SIZE, "The protobuf message size is written");
         }
 
         [Fact]
