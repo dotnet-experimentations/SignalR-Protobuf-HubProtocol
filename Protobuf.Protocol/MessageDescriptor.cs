@@ -2,7 +2,6 @@
 using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace Protobuf.Protocol
 {
@@ -46,6 +45,59 @@ namespace Protobuf.Protocol
         public byte GetMessageType(ReadOnlySpan<byte> message)
         {
             return message[0];
+        }
+
+        public int GetTotalMessageLength(ReadOnlySpan<byte> message)
+        {
+            // We need at least 5 bytes to be get the total length 
+            if (message.Length < 5)
+            {
+                return 0;
+            }
+
+            return BitConverter.ToInt32(message.Slice(1, 4).ToArray(), 0);
+        }
+
+        // Without a complete header, we are not able to retrieve the protobuf object message
+        public ReadOnlySpan<byte> GetProtobufMessage(ReadOnlySpan<byte> message)
+        {
+            if (message.Length <= ProtobufHubProtocolConstants.MESSAGE_HEADER_SIZE)
+            {
+                return new ReadOnlySpan<byte>();
+            }
+
+            var protobufMessageLength = BitConverter.ToInt32(message.Slice(5, 4).ToArray(), 0);
+
+            return message.Slice(ProtobufHubProtocolConstants.MESSAGE_HEADER_SIZE, protobufMessageLength);
+        }
+
+        public List<ArgumentDescriptor> GetArguments(ReadOnlySpan<byte> message)
+        {
+            var arguments = new List<ArgumentDescriptor>();
+
+            // Without a complete header, we are not able to retrieve the arguments descriptors
+            if (message.Length <= ProtobufHubProtocolConstants.MESSAGE_HEADER_SIZE)
+            {
+                return arguments;
+            }
+
+            var protobufMessageLength = BitConverter.ToInt32(message.Slice(5, 4).ToArray(), 0);
+
+            message = message.Slice(ProtobufHubProtocolConstants.MESSAGE_HEADER_SIZE + protobufMessageLength);
+
+            while (!message.IsEmpty)
+            {
+                var argumentType = BitConverter.ToInt32(message.Slice(0, 4).ToArray(), 0);
+                var argumentLength = BitConverter.ToInt32(message.Slice(4, 4).ToArray(), 0);
+                var argument = message.Slice(8, argumentLength).ToArray();
+
+                var messageArgument = new ArgumentDescriptor(argumentType, argument);
+                arguments.Add(messageArgument);
+
+                message = message.Slice(8 + argumentLength);
+            }
+
+            return arguments;
         }
     }
 }
