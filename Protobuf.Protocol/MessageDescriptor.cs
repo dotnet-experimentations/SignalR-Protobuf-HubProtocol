@@ -42,5 +42,10 @@ namespace Protobuf.Protocol
                 ArrayPool<byte>.Shared.Return(byteArray);
             }
         }
+
+        public byte GetMessageType(ReadOnlySpan<byte> message)
+        {
+            return message[0];
+        }
     }
 }

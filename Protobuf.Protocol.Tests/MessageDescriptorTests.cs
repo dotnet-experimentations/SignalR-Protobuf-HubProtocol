@@ -66,5 +66,22 @@ namespace Protobuf.Protocol.Tests
             }
         }
 
+        [Theory]
+        [InlineData(HubProtocolConstants.InvocationMessageType)]
+        [InlineData(HubProtocolConstants.StreamInvocationMessageType)]
+        [InlineData(HubProtocolConstants.CompletionMessageType)]
+        [InlineData(HubProtocolConstants.CloseMessageType)]
+        public void MessageDescriptor_Should_Retrieve_MessageType_From_A_PackedMessage(int messageType)
+        {
+            var messageDescriptor = new MessageDescriptor();
+            var protobufMessageSerialized = new TestMessage { Data = "FooBar" }.ToByteArray();
+            var argumentsDescriptors = GetArgumentsDescriptors("myArg");
+
+            ReadOnlySpan<byte> messagePacked = messageDescriptor.PackMessage(messageType, protobufMessageSerialized, argumentsDescriptors);
+
+            var type = messageDescriptor.GetMessageType(messagePacked);
+
+            Assert.Equal(messageType, type);
+        }
     }
 }
