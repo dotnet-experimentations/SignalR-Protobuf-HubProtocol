@@ -107,6 +107,8 @@ namespace Protobuf.Protocol
                     return CreateHubStreamItemMessage(protobufMessage, arguments);
                 case HubProtocolConstants.CompletionMessageType:
                     return CreateHubCompletionMessage(protobufMessage, arguments);
+                case HubProtocolConstants.StreamInvocationMessageType:
+                    return CreateHubStreamInvocationMessageType(protobufMessage, arguments);
                 case HubProtocolConstants.PingMessageType:
                     return PingMessage.Instance;
                 default:
@@ -154,6 +156,18 @@ namespace Protobuf.Protocol
             return new CompletionMessage(protobufCompletionMessage.InvocationId, null, arguments.FirstOrDefault(), true)
             {
                 Headers = protobufCompletionMessage.Headers
+            };
+        }
+
+        private HubMessage CreateHubStreamInvocationMessageType(ReadOnlySpan<byte> protobufMessage, object[] arguments)
+        {
+            var protobufStreamInvocationMessage = new StreamInvocationMessageProtobuf();
+
+            protobufStreamInvocationMessage.MergeFrom(protobufMessage.ToArray());
+
+            return new StreamInvocationMessage(protobufStreamInvocationMessage.InvocationId, protobufStreamInvocationMessage.Target, arguments, protobufStreamInvocationMessage.StreamIds.ToArray())
+            {
+                Headers = protobufStreamInvocationMessage.Headers
             };
         }
 
@@ -265,7 +279,25 @@ namespace Protobuf.Protocol
 
         private void WriteStreamInvocationMessage(StreamInvocationMessage streamInvocationMessage, IBufferWriter<byte> output)
         {
-            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.StreamInvocationMessageType, Array.Empty<byte>(), new List<ArgumentDescriptor>());
+            var protobufStreamInvocationMessage = new StreamInvocationMessageProtobuf
+            {
+                InvocationId = streamInvocationMessage.InvocationId,
+                Target = streamInvocationMessage.Target
+            };
+
+            if (streamInvocationMessage.Headers != null)
+            {
+                protobufStreamInvocationMessage.Headers.Add(streamInvocationMessage.Headers);
+            }
+
+            if (streamInvocationMessage.StreamIds != null)
+            {
+                protobufStreamInvocationMessage.StreamIds.Add(streamInvocationMessage.StreamIds.Select(id => id ?? ""));
+            }
+
+            var arguments = SerializeArguments(streamInvocationMessage.Arguments);
+
+            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.StreamInvocationMessageType, protobufStreamInvocationMessage.ToByteArray(), arguments);
 
             output.Write(packedMessage);
         }

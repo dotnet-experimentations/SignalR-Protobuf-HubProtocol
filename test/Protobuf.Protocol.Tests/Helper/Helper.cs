@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SignalR.Protobuf.Protocol;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -16,6 +17,18 @@ namespace Protobuf.Protocol.Tests.Helper
             }
 
             return headers;
+        }
+
+        public static object[] GetProtobufTestMessages(params string[] data)
+        {
+            var objects = new List<object>();
+
+            for (var i = 0; i < data.Length; i++)
+            {
+                objects.Add(new TestMessage { Data = data[i] });
+            }
+
+            return objects.ToArray();
         }
     }
 }

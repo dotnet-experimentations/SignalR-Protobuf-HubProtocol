@@ -16,22 +16,11 @@ namespace Protobuf.Protocol.Tests
         public const string TARGET = "Target";
         public const string INVOCATION_ID = "123";
 
-        public object[] GetProtobufTestMessages(params string[] data)
-        {
-            var objects = new List<object>();
-
-            for (var i = 0; i < data.Length; i++)
-            {
-                objects.Add(new TestMessage { Data = data[i] });
-            }
-
-            return objects.ToArray();
-        }
-
         [Theory]
         [InlineData("FooTarget")]
         [InlineData("InvocationMessageTarget")]
         [InlineData("TestInvocationMessageHubProtocolTarget")]
+        [InlineData("[[[[#####@@@@@@@$$$$$$$$%%%%%%%%%^^^^^^^&&&&&&&&********]]]]")]
         public void Protocol_Should_Handle_InvocationMessage_Without_Argument(string target)
         {
             var logger = new NullLogger<ProtobufHubProtocol>();
@@ -139,7 +128,7 @@ namespace Protobuf.Protocol.Tests
             var protobufHubProtocol = new ProtobufHubProtocol(protobufType, logger);
             var writer = new ArrayBufferWriter<byte>();
 
-            var arguments = GetProtobufTestMessages(data);
+            var arguments = Helpers.GetProtobufTestMessages(data);
             var invocationMessage = new InvocationMessage(TARGET, arguments);
 
             protobufHubProtocol.WriteMessage(invocationMessage, writer);
@@ -211,7 +200,7 @@ namespace Protobuf.Protocol.Tests
 
             var protobufHubProtocol = new ProtobufHubProtocol(protobufType, logger);
             var writer = new ArrayBufferWriter<byte>();
-            var invocationMessage = new InvocationMessage("1", TARGET, new[] { "foo", "bar"}, streamIds);
+            var invocationMessage = new InvocationMessage(INVOCATION_ID, TARGET, new[] { "foo", "bar"}, streamIds);
 
             protobufHubProtocol.WriteMessage(invocationMessage, writer);
             var encodedMessage = new ReadOnlySequence<byte>(writer.WrittenSpan.ToArray());
@@ -221,7 +210,7 @@ namespace Protobuf.Protocol.Tests
             Assert.NotNull(resultInvocationMessage);
             Assert.IsType<InvocationMessage>(resultInvocationMessage);
             Assert.Equal(TARGET, ((InvocationMessage)resultInvocationMessage).Target);
-            Assert.Equal("1", ((InvocationMessage)resultInvocationMessage).InvocationId);
+            Assert.Equal(INVOCATION_ID, ((InvocationMessage)resultInvocationMessage).InvocationId);
             Assert.NotEmpty(((InvocationMessage)resultInvocationMessage).Arguments);
             Assert.Equal("bar", ((InvocationMessage)resultInvocationMessage).Arguments[1]);
 
