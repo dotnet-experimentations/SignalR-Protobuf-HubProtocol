@@ -15,8 +15,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Protobuf.Models\Protobuf.Models.csproj" />
-    <ProjectReference Include="..\Protobuf.Protocol\Protobuf.Protocol.csproj" />
+    <ProjectReference Include="..\..\src\Protobuf.Models\Protobuf.Models.csproj" />
+    <ProjectReference Include="..\..\src\Protobuf.Protocol\Protobuf.Protocol.csproj" />
   </ItemGroup>
   
 </Project>
