@@ -2,9 +2,12 @@ syntax = "proto3";
 
 package SignalR.Protobuf.Protocol;
 
+import "utils.proto";
+
 message InvocationMessageProtobuf {
 	string invocationId = 1;
 	string target = 2;
+	repeated Argument arguments = 3;
 }
 
 message StreamItemMessageProtobuf {

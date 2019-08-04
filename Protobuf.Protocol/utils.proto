@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package SignalR.Protobuf.Protocol;
+
+message Argument {
+	repeated Item  items = 1;
+}
+
+message Item {
+	int32 size = 1;
+	int32 type = 2;
+}

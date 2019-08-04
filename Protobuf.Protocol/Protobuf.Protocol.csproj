@@ -24,9 +24,11 @@
 
   <ItemGroup>
     <None Remove="internal_models.proto" />
+    <None Remove="utils.proto" />
   </ItemGroup>
 
   <ItemGroup>
     <Protobuf Update="internal_models.proto" GrpcServices="None" Access="Internal" />
+    <Protobuf Update="utils.proto" GrpcServices="None" Access="Internal" />
   </ItemGroup>
 </Project>

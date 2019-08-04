@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.IO;
+using System.Text;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.SignalR;
@@ -49,25 +49,26 @@ namespace Protobuf.Protocol
                 return false;
             }
 
-            var messageType = (int)input.Slice(0, 1).ToArray()[0];
-
-            message = CreateHubMessage(ref input, messageType);
 
             var totalSize = BitConverter.ToInt32(input.Slice(1, 4).ToArray(), 0);
+
+            var serializedMessage = input.Slice(0, totalSize + ProtobufHubProtocolConstants.TYPE_AND_TOTAL_LENGTH_HEADER).ToArray();
+
+            var messageType = _messageDescriptor.GetMessageType(serializedMessage);
+
+            message = CreateHubMessage(serializedMessage, messageType);
+
             input = input.Slice(totalSize + ProtobufHubProtocolConstants.TYPE_AND_TOTAL_LENGTH_HEADER);
 
             return true;
         }
 
-        private HubMessage CreateHubMessage(ref ReadOnlySequence<byte> input, int messageType)
+        private HubMessage CreateHubMessage(ReadOnlySpan<byte> serializedMessage, int messageType)
         {
-            var protobufMessageLength = BitConverter.ToInt32(input.Slice(ProtobufHubProtocolConstants.TYPE_AND_TOTAL_LENGTH_HEADER, 4).ToArray(), 0);
-            var protobufInput = input.Slice(ProtobufHubProtocolConstants.MESSAGE_HEADER_LENGTH, protobufMessageLength);
-
             switch (messageType)
             {
                 case HubProtocolConstants.InvocationMessageType:
-                    return CreateHubInvocationMessage(protobufInput);
+                    return CreateHubInvocationMessage(serializedMessage);
                 case HubProtocolConstants.PingMessageType:
                     return PingMessage.Instance;
                 default:
@@ -75,13 +76,32 @@ namespace Protobuf.Protocol
             }
         }
 
-        private HubMessage CreateHubInvocationMessage(ReadOnlySequence<byte> protobufMessage)
+        private HubMessage CreateHubInvocationMessage(ReadOnlySpan<byte> serializedMessage)
         {
+            var protobufMessage = _messageDescriptor.GetProtobufMessage(serializedMessage);
+
+            var argumentsDescriptors = _messageDescriptor.GetArguments(serializedMessage);
+
+            var arguments = DeserializeMessageArguments(argumentsDescriptors);
+
             var protobufInvocationMessage = new InvocationMessageProtobuf();
 
             protobufInvocationMessage.MergeFrom(protobufMessage.ToArray());
 
-            return new InvocationMessage(protobufInvocationMessage.InvocationId, protobufInvocationMessage.Target, Array.Empty<object>());
+            return new InvocationMessage(protobufInvocationMessage.InvocationId, protobufInvocationMessage.Target, arguments);
+        }
+
+        public object[] DeserializeMessageArguments(List<ArgumentDescriptor> argumentsDescriptor)
+        {
+            var arguments = new List<object>();
+
+            for (var i = 0; i < argumentsDescriptor.Count; i++)
+            {
+                var argument = Encoding.UTF8.GetString(argumentsDescriptor[i].Argument);
+
+                arguments.Add(argument);
+            }
+            return arguments.ToArray();
         }
 
         public void WriteMessage(HubMessage message, IBufferWriter<byte> output)
@@ -123,7 +143,9 @@ namespace Protobuf.Protocol
                 Target = invocationMessage.Target
             };
 
-            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.InvocationMessageType, protobufInvocationMessage.ToByteArray(), new List<ArgumentDescriptor>());
+            var arguments = SerializeArguments(invocationMessage.Arguments);
+
+            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.InvocationMessageType, protobufInvocationMessage.ToByteArray(), arguments);
 
             output.Write(packedMessage);
         }
@@ -168,6 +190,30 @@ namespace Protobuf.Protocol
             var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.CloseMessageType, Array.Empty<byte>(), new List<ArgumentDescriptor>());
 
             output.Write(packedMessage);
+        }
+
+        private List<ArgumentDescriptor> SerializeArguments(object[] arguments)
+        {
+            var argumentsDescriptors = new List<ArgumentDescriptor>(arguments.Length);
+
+            for (var i = 0; i < arguments.Length; i++)
+            {
+                var argumentDescriptor = DescribeArgument(arguments[i]);
+                argumentsDescriptors.Add(argumentDescriptor);
+            }
+
+            return argumentsDescriptors;
+        }
+
+        private ArgumentDescriptor DescribeArgument(object argument)
+        {
+            switch (argument)
+            {
+                case string item:
+                    return new ArgumentDescriptor(-2, Encoding.UTF8.GetBytes(item));
+                default:
+                    return null;
+            }
         }
     }
 }
