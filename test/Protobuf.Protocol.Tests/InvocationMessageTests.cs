@@ -27,6 +27,18 @@ namespace Protobuf.Protocol.Tests
             return objects.ToArray();
         }
 
+        public Dictionary<string, string> GetHeaders(params string[] kvp)
+        {
+            var headers = new Dictionary<string, string>(kvp.Length / 2);
+
+            for (var i = 0; i < kvp.Length; i += 2)
+            {
+                headers.Add(kvp[i], kvp[i + 1]);
+            }
+
+            return headers;
+        }
+
         [Theory]
         [InlineData("FooTarget")]
         [InlineData("InvocationMessageTarget")]
@@ -167,7 +179,7 @@ namespace Protobuf.Protocol.Tests
         [InlineData(123, "123456789.12344556789", 987.3543353, double.MaxValue)]
         [InlineData(-12.123453, -123456789, "some other data to test argument", "")]
         [InlineData(double.MaxValue, int.MinValue, int.MaxValue, double.MinValue, "")]
-        public void Protocol_Should_Handle_InvocationMessage_With_Double_As_Argument(params object[] arguments)
+        public void Protocol_Should_Handle_InvocationMessage_With_Arguments(params object[] arguments)
         {
             var logger = new NullLogger<ProtobufHubProtocol>();
             var binder = new Mock<IInvocationBinder>();
@@ -195,6 +207,78 @@ namespace Protobuf.Protocol.Tests
             {
                 Assert.Equal(arguments[i], args[i]);
             }
+        }
+
+        [Theory]
+        [InlineData("1")]
+        [InlineData("1234", "4321")]
+        [InlineData("9876543210123456789", "12", "1", "999")]
+        [InlineData("")]
+        public void Protocol_Should_Handle_InvocationMessage_With_StreamIds(params string[] streamIds)
+        {
+            var logger = new NullLogger<ProtobufHubProtocol>();
+            var binder = new Mock<IInvocationBinder>();
+            var protobufType = new List<Type>();
+
+            var protobufHubProtocol = new ProtobufHubProtocol(protobufType, logger);
+            var writer = new ArrayBufferWriter<byte>();
+            var invocationMessage = new InvocationMessage("1", TARGET, new[] { "foo", "bar"}, streamIds);
+
+            protobufHubProtocol.WriteMessage(invocationMessage, writer);
+            var encodedMessage = new ReadOnlySequence<byte>(writer.WrittenSpan.ToArray());
+            var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var resultInvocationMessage);
+
+            Assert.True(result);
+            Assert.NotNull(resultInvocationMessage);
+            Assert.IsType<InvocationMessage>(resultInvocationMessage);
+            Assert.Equal(TARGET, ((InvocationMessage)resultInvocationMessage).Target);
+            Assert.Equal("1", ((InvocationMessage)resultInvocationMessage).InvocationId);
+            Assert.NotEmpty(((InvocationMessage)resultInvocationMessage).Arguments);
+            Assert.Equal("bar", ((InvocationMessage)resultInvocationMessage).Arguments[1]);
+
+            var ids = ((InvocationMessage)resultInvocationMessage).StreamIds;
+            Assert.NotEmpty(ids);
+            Assert.Equal(streamIds.Length, ids.Length);
+
+            for (var i = 0; i < ids.Length; i++)
+            {
+                Assert.Equal(streamIds[i], ids[i]);
+            }
+        }
+
+        [Theory]
+        [InlineData("key", "value")]
+        [InlineData("foo", "bar", "2048", "4096")]
+        [InlineData("toto", "tata", "tutu", "titi", "42", "28")]
+        public void Protocol_Should_Handle_InvocationMessage_With_Headers(params string[] kvp)
+        {
+            var logger = new NullLogger<ProtobufHubProtocol>();
+            var binder = new Mock<IInvocationBinder>();
+            var protobufType = new List<Type>();
+
+            var protobufHubProtocol = new ProtobufHubProtocol(protobufType, logger);
+            var writer = new ArrayBufferWriter<byte>();
+
+            var headers = GetHeaders(kvp);
+            var invocationMessage = new InvocationMessage(TARGET, new[] { "foo", "bar" })
+            {
+                Headers = headers
+            };
+
+            protobufHubProtocol.WriteMessage(invocationMessage, writer);
+            var encodedMessage = new ReadOnlySequence<byte>(writer.WrittenSpan.ToArray());
+            var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var resultInvocationMessage);
+
+            Assert.True(result);
+            Assert.NotNull(resultInvocationMessage);
+            Assert.IsType<InvocationMessage>(resultInvocationMessage);
+            Assert.Equal(TARGET, ((InvocationMessage)resultInvocationMessage).Target);
+            Assert.NotEmpty(((InvocationMessage)resultInvocationMessage).Arguments);
+            Assert.Equal("bar", ((InvocationMessage)resultInvocationMessage).Arguments[1]);
+            var resultHeaders = ((InvocationMessage)resultInvocationMessage).Headers;
+            Assert.NotEmpty(resultHeaders);
+            Assert.Equal(resultHeaders.Count, headers.Count);
+            Assert.Equal(headers, resultHeaders);
         }
     }
 }

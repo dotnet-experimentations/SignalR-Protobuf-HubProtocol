@@ -5,9 +5,11 @@ package SignalR.Protobuf.Protocol;
 import "utils.proto";
 
 message InvocationMessageProtobuf {
-	string invocationId = 1;
-	string target = 2;
-	repeated Argument arguments = 3;
+	map<string, string> headers = 1;
+	string invocationId = 2;
+	string target = 3;
+	repeated Argument arguments = 4;
+	repeated string streamIds = 5;
 }
 
 message StreamItemMessageProtobuf {

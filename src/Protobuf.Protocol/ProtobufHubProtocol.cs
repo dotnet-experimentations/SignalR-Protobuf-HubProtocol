@@ -107,7 +107,10 @@ namespace Protobuf.Protocol
 
             protobufInvocationMessage.MergeFrom(protobufMessage.ToArray());
 
-            return new InvocationMessage(protobufInvocationMessage.InvocationId, protobufInvocationMessage.Target, arguments);
+            return new InvocationMessage(protobufInvocationMessage.InvocationId, protobufInvocationMessage.Target, arguments, protobufInvocationMessage.StreamIds.ToArray())
+            {
+                Headers = protobufInvocationMessage.Headers
+            };
         }
 
         public object[] DeserializeMessageArguments(List<ArgumentDescriptor> argumentsDescriptor)
@@ -186,6 +189,16 @@ namespace Protobuf.Protocol
                 InvocationId = invocationMessage.InvocationId ?? "",
                 Target = invocationMessage.Target
             };
+
+            if (invocationMessage.Headers != null)
+            {
+                protobufInvocationMessage.Headers.Add(invocationMessage.Headers);
+            }
+
+            if (invocationMessage.StreamIds != null)
+            {
+                protobufInvocationMessage.StreamIds.Add(invocationMessage.StreamIds.Select(id => id ?? ""));
+            }
 
             var arguments = SerializeArguments(invocationMessage.Arguments);
 
