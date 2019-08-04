@@ -24,13 +24,13 @@ namespace Protobuf.Protocol.Tests
 
             protobufHubProtocol.WriteMessage(PingMessage.Instance, writer);
             var encodedMessage = new ReadOnlySequence<byte>(writer.WrittenSpan.ToArray());
-            var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var pingMessage);
+            var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var resultPingMessage);
 
             Assert.Equal(ProtobufHubProtocolConstants.MESSAGE_HEADER_LENGTH, writer.WrittenCount);
             Assert.True(result);
-            Assert.IsType<PingMessage>(pingMessage);
-            Assert.NotNull(pingMessage);
-            Assert.Equal(PingMessage.Instance, pingMessage);
+            Assert.IsType<PingMessage>(resultPingMessage);
+            Assert.NotNull(resultPingMessage);
+            Assert.Equal(PingMessage.Instance, resultPingMessage);
         }
     }
 }

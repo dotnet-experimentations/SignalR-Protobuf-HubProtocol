@@ -40,13 +40,13 @@ namespace Protobuf.Protocol.Tests
 
             protobufHubProtocol.WriteMessage(streamItemMessage, writer);
             var encodedMessage = new ReadOnlySequence<byte>(writer.WrittenSpan.ToArray());
-            var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var resultInvocationMessage);
+            var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var resultStreamItemMessage);
 
             Assert.True(result);
-            Assert.NotNull(resultInvocationMessage);
-            Assert.IsType<StreamItemMessage>(resultInvocationMessage);
-            Assert.Equal(INVOCATION_ID, ((StreamItemMessage)resultInvocationMessage).InvocationId);
-            Assert.Equal(item, ((StreamItemMessage)resultInvocationMessage).Item);
+            Assert.NotNull(resultStreamItemMessage);
+            Assert.IsType<StreamItemMessage>(resultStreamItemMessage);
+            Assert.Equal(INVOCATION_ID, ((StreamItemMessage)resultStreamItemMessage).InvocationId);
+            Assert.Equal(item, ((StreamItemMessage)resultStreamItemMessage).Item);
         }
 
         [Theory]
@@ -67,13 +67,13 @@ namespace Protobuf.Protocol.Tests
 
             protobufHubProtocol.WriteMessage(streamItemMessage, writer);
             var encodedMessage = new ReadOnlySequence<byte>(writer.WrittenSpan.ToArray());
-            var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var resultInvocationMessage);
+            var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var resultStreamItemMessage);
 
             Assert.True(result);
-            Assert.NotNull(resultInvocationMessage);
-            Assert.IsType<StreamItemMessage>(resultInvocationMessage);
-            Assert.Equal(INVOCATION_ID, ((StreamItemMessage)resultInvocationMessage).InvocationId);
-            Assert.Equal(item, ((StreamItemMessage)resultInvocationMessage).Item);
+            Assert.NotNull(resultStreamItemMessage);
+            Assert.IsType<StreamItemMessage>(resultStreamItemMessage);
+            Assert.Equal(INVOCATION_ID, ((StreamItemMessage)resultStreamItemMessage).InvocationId);
+            Assert.Equal(item, ((StreamItemMessage)resultStreamItemMessage).Item);
         }
 
         [Theory]
@@ -97,15 +97,15 @@ namespace Protobuf.Protocol.Tests
 
             protobufHubProtocol.WriteMessage(streamItemMessage, writer);
             var encodedMessage = new ReadOnlySequence<byte>(writer.WrittenSpan.ToArray());
-            var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var resultInvocationMessage);
+            var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var resultStreamItemMessage);
 
             Assert.True(result);
-            Assert.NotNull(resultInvocationMessage);
-            Assert.IsType<StreamItemMessage>(resultInvocationMessage);
-            Assert.Equal(INVOCATION_ID, ((StreamItemMessage)resultInvocationMessage).InvocationId);
-            Assert.Equal("foo", ((StreamItemMessage)resultInvocationMessage).Item);
+            Assert.NotNull(resultStreamItemMessage);
+            Assert.IsType<StreamItemMessage>(resultStreamItemMessage);
+            Assert.Equal(INVOCATION_ID, ((StreamItemMessage)resultStreamItemMessage).InvocationId);
+            Assert.Equal("foo", ((StreamItemMessage)resultStreamItemMessage).Item);
 
-            var resultHeaders = ((StreamItemMessage)resultInvocationMessage).Headers;
+            var resultHeaders = ((StreamItemMessage)resultStreamItemMessage).Headers;
             Assert.NotEmpty(resultHeaders);
             Assert.Equal(resultHeaders.Count, headers.Count);
             Assert.Equal(headers, resultHeaders);

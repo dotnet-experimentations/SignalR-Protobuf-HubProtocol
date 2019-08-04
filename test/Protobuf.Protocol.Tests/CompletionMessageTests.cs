@@ -30,13 +30,13 @@ namespace Protobuf.Protocol.Tests
 
             protobufHubProtocol.WriteMessage(completionMessage, writer);
             var encodedMessage = new ReadOnlySequence<byte>(writer.WrittenSpan.ToArray());
-            var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var resultInvocationMessage);
+            var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var resultCompletionMessage);
 
             Assert.True(result);
-            Assert.NotNull(resultInvocationMessage);
-            Assert.IsType<CompletionMessage>(resultInvocationMessage);
-            Assert.Equal(invocationId, ((CompletionMessage)resultInvocationMessage).InvocationId);
-            Assert.False(((CompletionMessage)resultInvocationMessage).HasResult, "Completation message does have result");
+            Assert.NotNull(resultCompletionMessage);
+            Assert.IsType<CompletionMessage>(resultCompletionMessage);
+            Assert.Equal(invocationId, ((CompletionMessage)resultCompletionMessage).InvocationId);
+            Assert.False(((CompletionMessage)resultCompletionMessage).HasResult, "Completation message does have result");
         }
 
         [Theory]
@@ -56,14 +56,14 @@ namespace Protobuf.Protocol.Tests
 
             protobufHubProtocol.WriteMessage(completionMessage, writer);
             var encodedMessage = new ReadOnlySequence<byte>(writer.WrittenSpan.ToArray());
-            var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var resultInvocationMessage);
+            var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var resultCompletionMessage);
             Assert.True(result);
-            Assert.NotNull(resultInvocationMessage);
-            Assert.IsType<CompletionMessage>(resultInvocationMessage);
-            Assert.Equal("123", ((CompletionMessage)resultInvocationMessage).InvocationId);
-            Assert.Equal(error, ((CompletionMessage)resultInvocationMessage).Error);
-            Assert.Null(((CompletionMessage)resultInvocationMessage).Result);
-            Assert.False(((CompletionMessage)resultInvocationMessage).HasResult, "Completation message does have result");
+            Assert.NotNull(resultCompletionMessage);
+            Assert.IsType<CompletionMessage>(resultCompletionMessage);
+            Assert.Equal("123", ((CompletionMessage)resultCompletionMessage).InvocationId);
+            Assert.Equal(error, ((CompletionMessage)resultCompletionMessage).Error);
+            Assert.Null(((CompletionMessage)resultCompletionMessage).Result);
+            Assert.False(((CompletionMessage)resultCompletionMessage).HasResult, "Completation message does have result");
         }
 
         [Theory]
@@ -83,13 +83,13 @@ namespace Protobuf.Protocol.Tests
 
             protobufHubProtocol.WriteMessage(completionMessage, writer);
             var encodedMessage = new ReadOnlySequence<byte>(writer.WrittenSpan.ToArray());
-            var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var resultInvocationMessage);
+            var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var resultCompletionMessage);
             Assert.True(result);
-            Assert.NotNull(resultInvocationMessage);
-            Assert.IsType<CompletionMessage>(resultInvocationMessage);
-            Assert.Equal("123", ((CompletionMessage)resultInvocationMessage).InvocationId);
-            Assert.Equal(completionResult, ((CompletionMessage)resultInvocationMessage).Result);
-            Assert.True(((CompletionMessage)resultInvocationMessage).HasResult, "Completation message doesn't have result");
+            Assert.NotNull(resultCompletionMessage);
+            Assert.IsType<CompletionMessage>(resultCompletionMessage);
+            Assert.Equal("123", ((CompletionMessage)resultCompletionMessage).InvocationId);
+            Assert.Equal(completionResult, ((CompletionMessage)resultCompletionMessage).Result);
+            Assert.True(((CompletionMessage)resultCompletionMessage).HasResult, "Completation message doesn't have result");
         }
 
         [Theory]
@@ -113,15 +113,15 @@ namespace Protobuf.Protocol.Tests
 
             protobufHubProtocol.WriteMessage(completionMessage, writer);
             var encodedMessage = new ReadOnlySequence<byte>(writer.WrittenSpan.ToArray());
-            var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var resultInvocationMessage);
+            var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var resultCompletionMessage);
 
             Assert.True(result);
-            Assert.NotNull(resultInvocationMessage);
-            Assert.IsType<CompletionMessage>(resultInvocationMessage);
-            Assert.Equal("123", ((CompletionMessage)resultInvocationMessage).InvocationId);
-            Assert.Equal("completion", ((CompletionMessage)resultInvocationMessage).Result);
-            Assert.True(((CompletionMessage)resultInvocationMessage).HasResult, "Completation message doesn't have result");
-            var resultHeaders = ((CompletionMessage)resultInvocationMessage).Headers;
+            Assert.NotNull(resultCompletionMessage);
+            Assert.IsType<CompletionMessage>(resultCompletionMessage);
+            Assert.Equal("123", ((CompletionMessage)resultCompletionMessage).InvocationId);
+            Assert.Equal("completion", ((CompletionMessage)resultCompletionMessage).Result);
+            Assert.True(((CompletionMessage)resultCompletionMessage).HasResult, "Completation message doesn't have result");
+            var resultHeaders = ((CompletionMessage)resultCompletionMessage).Headers;
             Assert.NotEmpty(resultHeaders);
             Assert.Equal(resultHeaders.Count, headers.Count);
             Assert.Equal(headers, resultHeaders);
@@ -148,16 +148,16 @@ namespace Protobuf.Protocol.Tests
 
             protobufHubProtocol.WriteMessage(completionMessage, writer);
             var encodedMessage = new ReadOnlySequence<byte>(writer.WrittenSpan.ToArray());
-            var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var resultInvocationMessage);
+            var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var resultCompletionMessage);
 
             Assert.True(result);
-            Assert.NotNull(resultInvocationMessage);
-            Assert.IsType<CompletionMessage>(resultInvocationMessage);
-            Assert.Equal("123", ((CompletionMessage)resultInvocationMessage).InvocationId);
-            Assert.Equal("Error", ((CompletionMessage)resultInvocationMessage).Error);
-            Assert.Null(((CompletionMessage)resultInvocationMessage).Result);
-            Assert.False(((CompletionMessage)resultInvocationMessage).HasResult, "Completation message does have result");
-            var resultHeaders = ((CompletionMessage)resultInvocationMessage).Headers;
+            Assert.NotNull(resultCompletionMessage);
+            Assert.IsType<CompletionMessage>(resultCompletionMessage);
+            Assert.Equal("123", ((CompletionMessage)resultCompletionMessage).InvocationId);
+            Assert.Equal("Error", ((CompletionMessage)resultCompletionMessage).Error);
+            Assert.Null(((CompletionMessage)resultCompletionMessage).Result);
+            Assert.False(((CompletionMessage)resultCompletionMessage).HasResult, "Completation message does have result");
+            var resultHeaders = ((CompletionMessage)resultCompletionMessage).Headers;
             Assert.NotEmpty(resultHeaders);
             Assert.Equal(resultHeaders.Count, headers.Count);
             Assert.Equal(headers, resultHeaders);
