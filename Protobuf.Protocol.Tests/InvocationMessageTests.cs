@@ -80,47 +80,21 @@ namespace Protobuf.Protocol.Tests
         }
 
         [Theory]
-        [InlineData("Single Argument")]
-        [InlineData("Foo", "Bar")]
-        [InlineData("### First Argument ###", "[Second] [Argument]", "%%% Third %%% Argument %%%", "$Forth-$-Argument$")]
-        [InlineData("")]
-        public void Protocol_Should_Handle_InvocationMessage_With_String_As_Argument(params string[] arguments)
-        {
-            var logger = new NullLogger<ProtobufHubProtocol>();
-            var binder = new Mock<IInvocationBinder>();
-            var protobufType = new List<Type>();
-
-            var protobufHubProtocol = new ProtobufHubProtocol(protobufType, logger);
-            var writer = new ArrayBufferWriter<byte>();
-            var invocationMessage = new InvocationMessage(TARGET, arguments);
-
-            protobufHubProtocol.WriteMessage(invocationMessage, writer);
-            var encodedMessage = new ReadOnlySequence<byte>(writer.WrittenSpan.ToArray());
-            var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var resultInvocationMessage);
-
-            Assert.True(result);
-            Assert.NotNull(resultInvocationMessage);
-            Assert.IsType<InvocationMessage>(resultInvocationMessage);
-            Assert.Equal(TARGET, ((InvocationMessage)resultInvocationMessage).Target);
-
-            var args = ((InvocationMessage)resultInvocationMessage).Arguments;
-
-            Assert.NotEmpty(args);
-            Assert.Equal(arguments.Length, args.Length);
-            
-            for (var i = 0; i < args.Length; i++)
-            {
-                Assert.Equal(arguments[i], args[i]);
-            }
-        }
-
-        [Theory]
         [InlineData(42)]
         [InlineData(2048, 4096)]
         [InlineData(123, 123456789, 987, 987654321)]
         [InlineData(-123, 123456789, 987, -987654321)]
         [InlineData(int.MaxValue, int.MinValue)]
-        public void Protocol_Should_Handle_InvocationMessage_With_Int_As_Argument(params object[] arguments)
+        [InlineData(42.3)]
+        [InlineData(2048.1234, 4096.45678)]
+        [InlineData(123.00000, 123456789.12344556789, 987.3, 987654321.5)]
+        [InlineData(-12.123453, 123456789.34554363, 987.9, -987654321)]
+        [InlineData(double.MaxValue, double.MinValue)]
+        [InlineData("Single Argument")]
+        [InlineData("Foo", "Bar")]
+        [InlineData("### First Argument ###", "[Second] [Argument]", "%%% Third %%% Argument %%%", "$Forth-$-Argument$")]
+        [InlineData("")]
+        public void Protocol_Should_Handle_InvocationMessage_With_Int_Or_Double_Or_String_As_Argument(params object[] arguments)
         {
             var logger = new NullLogger<ProtobufHubProtocol>();
             var binder = new Mock<IInvocationBinder>();
@@ -165,6 +139,42 @@ namespace Protobuf.Protocol.Tests
             var writer = new ArrayBufferWriter<byte>();
 
             var arguments = GetProtobufTestMessages(data);
+            var invocationMessage = new InvocationMessage(TARGET, arguments);
+
+            protobufHubProtocol.WriteMessage(invocationMessage, writer);
+            var encodedMessage = new ReadOnlySequence<byte>(writer.WrittenSpan.ToArray());
+            var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var resultInvocationMessage);
+
+            Assert.True(result);
+            Assert.NotNull(resultInvocationMessage);
+            Assert.IsType<InvocationMessage>(resultInvocationMessage);
+            Assert.Equal(TARGET, ((InvocationMessage)resultInvocationMessage).Target);
+
+            var args = ((InvocationMessage)resultInvocationMessage).Arguments;
+
+            Assert.NotEmpty(args);
+            Assert.Equal(arguments.Length, args.Length);
+
+            for (var i = 0; i < args.Length; i++)
+            {
+                Assert.Equal(arguments[i], args[i]);
+            }
+        }
+
+        [Theory]
+        [InlineData(42.3, "some data", 23)]
+        [InlineData("test", 42.42, "Foo", "Bar")]
+        [InlineData(123, "123456789.12344556789", 987.3543353, double.MaxValue)]
+        [InlineData(-12.123453, -123456789, "some other data to test argument", "")]
+        [InlineData(double.MaxValue, int.MinValue, int.MaxValue, double.MinValue, "")]
+        public void Protocol_Should_Handle_InvocationMessage_With_Double_As_Argument(params object[] arguments)
+        {
+            var logger = new NullLogger<ProtobufHubProtocol>();
+            var binder = new Mock<IInvocationBinder>();
+            var protobufType = new List<Type>();
+
+            var protobufHubProtocol = new ProtobufHubProtocol(protobufType, logger);
+            var writer = new ArrayBufferWriter<byte>();
             var invocationMessage = new InvocationMessage(TARGET, arguments);
 
             protobufHubProtocol.WriteMessage(invocationMessage, writer);

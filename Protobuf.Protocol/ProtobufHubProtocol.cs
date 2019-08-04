@@ -23,7 +23,7 @@ namespace Protobuf.Protocol
         private readonly Dictionary<Type, int> _protobufTypeToIndex;
         private readonly Dictionary<int, Type> _indexToProtobufType;
 
-        private readonly int _numberOfNoProtobufObjectHandle = 3;
+        private readonly int _numberOfNoProtobufObjectHandle = 4;
 
         public string Name => _protocolName;
 
@@ -141,6 +141,8 @@ namespace Protobuf.Protocol
                     return Encoding.UTF8.GetString(argumentDescriptor.Argument);
                 case 3:
                     return BitConverter.ToInt32(argumentDescriptor.Argument, 0);
+                case 4:
+                    return BitConverter.ToDouble(argumentDescriptor.Argument, 0);
                 default:
                     return null;
             }
@@ -255,6 +257,8 @@ namespace Protobuf.Protocol
                     return new ArgumentDescriptor(2, Encoding.UTF8.GetBytes(item));
                 case int item:
                     return new ArgumentDescriptor(3, BitConverter.GetBytes(item));
+                case double item:
+                    return new ArgumentDescriptor(4, BitConverter.GetBytes(item));
                 case IMessage item:
                     return new ArgumentDescriptor(_protobufTypeToIndex[item.GetType()], item.ToByteArray());
                 default:
