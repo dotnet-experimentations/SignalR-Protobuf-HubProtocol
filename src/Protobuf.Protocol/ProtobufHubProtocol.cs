@@ -109,6 +109,8 @@ namespace Protobuf.Protocol
                     return CreateHubCompletionMessage(protobufMessage, arguments);
                 case HubProtocolConstants.StreamInvocationMessageType:
                     return CreateHubStreamInvocationMessageType(protobufMessage, arguments);
+                case HubProtocolConstants.CancelInvocationMessageType:
+                    return CreateHubCancelInvocationMessageType(protobufMessage, arguments);
                 case HubProtocolConstants.PingMessageType:
                     return PingMessage.Instance;
                 default:
@@ -168,6 +170,18 @@ namespace Protobuf.Protocol
             return new StreamInvocationMessage(protobufStreamInvocationMessage.InvocationId, protobufStreamInvocationMessage.Target, arguments, protobufStreamInvocationMessage.StreamIds.ToArray())
             {
                 Headers = protobufStreamInvocationMessage.Headers
+            };
+        }
+
+        private HubMessage CreateHubCancelInvocationMessageType(ReadOnlySpan<byte> protobufMessage, object[] arguments)
+        {
+            var protobufCancelInvocationMessage = new CancelInvocationMessageProtobuf();
+
+            protobufCancelInvocationMessage.MergeFrom(protobufMessage.ToArray());
+
+            return new CancelInvocationMessage(protobufCancelInvocationMessage.InvocationId)
+            {
+                Headers = protobufCancelInvocationMessage.Headers
             };
         }
 
@@ -347,7 +361,17 @@ namespace Protobuf.Protocol
 
         private void WriteCancelInvocationMessage(CancelInvocationMessage cancelInvocationMessage, IBufferWriter<byte> output)
         {
-            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.CancelInvocationMessageType, Array.Empty<byte>(), new List<ArgumentDescriptor>());
+            var protobufCancelInvocationMessage = new CancelInvocationMessageProtobuf
+            {
+                InvocationId = cancelInvocationMessage.InvocationId
+            };
+
+            if (cancelInvocationMessage.Headers != null)
+            {
+                protobufCancelInvocationMessage.Headers.Add(cancelInvocationMessage.Headers);
+            }
+
+            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.CancelInvocationMessageType, protobufCancelInvocationMessage.ToByteArray(), new List<ArgumentDescriptor>());
 
             output.Write(packedMessage);
         }

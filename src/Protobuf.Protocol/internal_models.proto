@@ -34,7 +34,8 @@ message StreamInvocationMessageProtobuf {
 }
 
 message CancelInvocationMessageProtobuf {
-
+	map<string, string> headers = 1;
+	string invocationId = 2;
 }
 
 message PingInvocationMessageProtobuf {
