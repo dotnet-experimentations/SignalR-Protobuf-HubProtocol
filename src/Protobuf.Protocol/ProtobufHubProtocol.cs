@@ -108,11 +108,13 @@ namespace Protobuf.Protocol
                 case HubProtocolConstants.CompletionMessageType:
                     return CreateHubCompletionMessage(protobufMessage, arguments);
                 case HubProtocolConstants.StreamInvocationMessageType:
-                    return CreateHubStreamInvocationMessageType(protobufMessage, arguments);
+                    return CreateHubStreamInvocationMessage(protobufMessage, arguments);
                 case HubProtocolConstants.CancelInvocationMessageType:
-                    return CreateHubCancelInvocationMessageType(protobufMessage, arguments);
+                    return CreateHubCancelInvocationMessage(protobufMessage);
                 case HubProtocolConstants.PingMessageType:
                     return PingMessage.Instance;
+                case HubProtocolConstants.CloseMessageType:
+                    return CreateHubCloseMessage(protobufMessage);
                 default:
                     return null;
             }
@@ -161,7 +163,7 @@ namespace Protobuf.Protocol
             };
         }
 
-        private HubMessage CreateHubStreamInvocationMessageType(ReadOnlySpan<byte> protobufMessage, object[] arguments)
+        private HubMessage CreateHubStreamInvocationMessage(ReadOnlySpan<byte> protobufMessage, object[] arguments)
         {
             var protobufStreamInvocationMessage = new StreamInvocationMessageProtobuf();
 
@@ -173,7 +175,7 @@ namespace Protobuf.Protocol
             };
         }
 
-        private HubMessage CreateHubCancelInvocationMessageType(ReadOnlySpan<byte> protobufMessage, object[] arguments)
+        private HubMessage CreateHubCancelInvocationMessage(ReadOnlySpan<byte> protobufMessage)
         {
             var protobufCancelInvocationMessage = new CancelInvocationMessageProtobuf();
 
@@ -183,6 +185,15 @@ namespace Protobuf.Protocol
             {
                 Headers = protobufCancelInvocationMessage.Headers
             };
+        }
+
+        private HubMessage CreateHubCloseMessage(ReadOnlySpan<byte> protobufMessage)
+        {
+            var protobufCloseMessage = new CloseMessageProtobuf();
+
+            protobufCloseMessage.MergeFrom(protobufMessage.ToArray());
+
+            return new CloseMessage(protobufCloseMessage.Error);
         }
 
         public object[] DeserializeMessageArguments(List<ArgumentDescriptor> argumentsDescriptor)
@@ -385,7 +396,12 @@ namespace Protobuf.Protocol
 
         private void WriteCloseMessage(CloseMessage closeMessage, IBufferWriter<byte> output)
         {
-            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.CloseMessageType, Array.Empty<byte>(), new List<ArgumentDescriptor>());
+            var protobufCloseMessage = new CloseMessageProtobuf
+            {
+                Error = closeMessage.Error
+            };
+
+            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.CloseMessageType, protobufCloseMessage.ToByteArray(), new List<ArgumentDescriptor>());
 
             output.Write(packedMessage);
         }

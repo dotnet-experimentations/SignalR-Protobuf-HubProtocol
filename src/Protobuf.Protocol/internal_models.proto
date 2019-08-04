@@ -43,5 +43,5 @@ message PingInvocationMessageProtobuf {
 }
 
 message CloseMessageProtobuf {
-
+	string error = 1;
 }
