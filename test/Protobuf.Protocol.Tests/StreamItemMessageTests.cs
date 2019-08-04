@@ -36,9 +36,9 @@ namespace Protobuf.Protocol.Tests
 
             var protobufHubProtocol = new ProtobufHubProtocol(protobufType, logger);
             var writer = new ArrayBufferWriter<byte>();
-            var invocationMessage = new StreamItemMessage(INVOCATION_ID, item);
+            var streamItemMessage = new StreamItemMessage(INVOCATION_ID, item);
 
-            protobufHubProtocol.WriteMessage(invocationMessage, writer);
+            protobufHubProtocol.WriteMessage(streamItemMessage, writer);
             var encodedMessage = new ReadOnlySequence<byte>(writer.WrittenSpan.ToArray());
             var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var resultInvocationMessage);
 
@@ -63,9 +63,9 @@ namespace Protobuf.Protocol.Tests
             var protobufHubProtocol = new ProtobufHubProtocol(protobufType, logger);
             var writer = new ArrayBufferWriter<byte>();
             var item = new TestMessage { Data = data };
-            var invocationMessage = new StreamItemMessage(INVOCATION_ID, item);
+            var streamItemMessage = new StreamItemMessage(INVOCATION_ID, item);
 
-            protobufHubProtocol.WriteMessage(invocationMessage, writer);
+            protobufHubProtocol.WriteMessage(streamItemMessage, writer);
             var encodedMessage = new ReadOnlySequence<byte>(writer.WrittenSpan.ToArray());
             var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var resultInvocationMessage);
 
