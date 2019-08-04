@@ -10,6 +10,10 @@
     <GrpcToolsPackageVersion>[1.*, )</GrpcToolsPackageVersion>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <BenchmarkDotNetPackageVersion>[0.*, )</BenchmarkDotNetPackageVersion>
+  </PropertyGroup>
+    
   <PropertyGroup Label="Tests">
     <XunitPackageVersion>[2.*, )</XunitPackageVersion>
     <XunitRunnerPackageVersion>[2.*, )</XunitRunnerPackageVersion>

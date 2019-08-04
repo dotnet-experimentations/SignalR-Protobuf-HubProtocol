@@ -31,4 +31,10 @@
     <Protobuf Update="internal_models.proto" GrpcServices="None" Access="Internal" />
     <Protobuf Update="utils.proto" GrpcServices="None" Access="Internal" />
   </ItemGroup>
+
+  <ItemGroup>
+   <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+     <_Parameter1>$(MSBuildProjectName).Microbenchmarks</_Parameter1>
+   </AssemblyAttribute>
+ </ItemGroup>
 </Project>
