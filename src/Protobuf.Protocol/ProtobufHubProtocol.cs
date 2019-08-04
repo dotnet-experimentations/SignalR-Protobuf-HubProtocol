@@ -105,6 +105,8 @@ namespace Protobuf.Protocol
                     return CreateHubInvocationMessage(protobufMessage, arguments);
                 case HubProtocolConstants.StreamItemMessageType:
                     return CreateHubStreamItemMessage(protobufMessage, arguments);
+                case HubProtocolConstants.CompletionMessageType:
+                    return CreateHubCompletionMessage(protobufMessage, arguments);
                 case HubProtocolConstants.PingMessageType:
                     return PingMessage.Instance;
                 default:
@@ -133,6 +135,25 @@ namespace Protobuf.Protocol
             return new StreamItemMessage(protobufStreamItemMessage.InvocationId, arguments.FirstOrDefault())
             {
                 Headers = protobufStreamItemMessage.Headers
+            };
+        }
+
+        private HubMessage CreateHubCompletionMessage(ReadOnlySpan<byte> protobufMessage, object[] arguments)
+        {
+            var protobufCompletionMessage = new CompletionMessageProtobuf();
+
+            protobufCompletionMessage.MergeFrom(protobufMessage.ToArray());
+
+            if (!string.IsNullOrEmpty(protobufCompletionMessage.Error) || arguments.FirstOrDefault() == null)
+            {
+                return new CompletionMessage(protobufCompletionMessage.InvocationId, protobufCompletionMessage.Error, null, false)
+                {
+                    Headers = protobufCompletionMessage.Headers
+                };
+            }
+            return new CompletionMessage(protobufCompletionMessage.InvocationId, null, arguments.FirstOrDefault(), true)
+            {
+                Headers = protobufCompletionMessage.Headers
             };
         }
 
@@ -270,7 +291,24 @@ namespace Protobuf.Protocol
 
         private void WriteCompletionMessage(CompletionMessage completionMessage, IBufferWriter<byte> output)
         {
-            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.CompletionMessageType, Array.Empty<byte>(), new List<ArgumentDescriptor>());
+            var protobufCompletionMessage = new CompletionMessageProtobuf
+            {
+                Error = completionMessage.Error ?? "",
+                InvocationId = completionMessage.InvocationId
+            };
+
+            if (completionMessage.Headers != null)
+            {
+                protobufCompletionMessage.Headers.Add(completionMessage.Headers);
+            }
+
+            var result = new ArgumentDescriptor(0, Array.Empty<byte>());
+            if (completionMessage.Result != null)
+            {
+                result = DescribeArgument(completionMessage.Result);
+            }
+
+            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.CompletionMessageType, protobufCompletionMessage.ToByteArray(), new List<ArgumentDescriptor> { result });
 
             output.Write(packedMessage);
         }

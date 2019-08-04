@@ -19,7 +19,10 @@ message StreamItemMessageProtobuf {
 }
 
 message CompletionMessageProtobuf {
-
+	map<string, string> headers = 1;
+	string invocationId = 2;
+	string error = 3;
+	Argument result = 4;
 }
 
 message StreamInvocationMessageProtobuf {
