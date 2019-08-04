@@ -93,12 +93,18 @@ namespace Protobuf.Protocol
 
         private HubMessage CreateHubMessage(ReadOnlySpan<byte> serializedMessage, int messageType)
         {
+            var protobufMessage = _messageDescriptor.GetProtobufMessage(serializedMessage);
+
+            var argumentsDescriptors = _messageDescriptor.GetArguments(serializedMessage);
+
+            var arguments = DeserializeMessageArguments(argumentsDescriptors);
+
             switch (messageType)
             {
                 case HubProtocolConstants.InvocationMessageType:
-                    return CreateHubInvocationMessage(serializedMessage);
+                    return CreateHubInvocationMessage(protobufMessage, arguments);
                 case HubProtocolConstants.StreamItemMessageType:
-                    return CreateHubStreamItemMessage(serializedMessage);
+                    return CreateHubStreamItemMessage(protobufMessage, arguments);
                 case HubProtocolConstants.PingMessageType:
                     return PingMessage.Instance;
                 default:
@@ -106,14 +112,8 @@ namespace Protobuf.Protocol
             }
         }
 
-        private HubMessage CreateHubInvocationMessage(ReadOnlySpan<byte> serializedMessage)
+        private HubMessage CreateHubInvocationMessage(ReadOnlySpan<byte> protobufMessage, object[] arguments)
         {
-            var protobufMessage = _messageDescriptor.GetProtobufMessage(serializedMessage);
-
-            var argumentsDescriptors = _messageDescriptor.GetArguments(serializedMessage);
-
-            var arguments = DeserializeMessageArguments(argumentsDescriptors);
-
             var protobufInvocationMessage = new InvocationMessageProtobuf();
 
             protobufInvocationMessage.MergeFrom(protobufMessage.ToArray());
@@ -124,14 +124,8 @@ namespace Protobuf.Protocol
             };
         }
 
-        private HubMessage CreateHubStreamItemMessage(ReadOnlySpan<byte> serializedMessage)
+        private HubMessage CreateHubStreamItemMessage(ReadOnlySpan<byte> protobufMessage, object[] arguments)
         {
-            var protobufMessage = _messageDescriptor.GetProtobufMessage(serializedMessage);
-
-            var argumentsDescriptors = _messageDescriptor.GetArguments(serializedMessage);
-
-            var arguments = DeserializeMessageArguments(argumentsDescriptors);
-
             var protobufStreamItemMessage = new StreamItemMessageProtobuf();
 
             protobufStreamItemMessage.MergeFrom(protobufMessage.ToArray());
