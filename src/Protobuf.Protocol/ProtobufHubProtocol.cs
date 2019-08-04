@@ -88,7 +88,7 @@ namespace Protobuf.Protocol
 
             input = input.Slice(totalSize + ProtobufHubProtocolConstants.TYPE_AND_TOTAL_LENGTH_HEADER);
 
-            return true;
+            return message == null ? false : true;
         }
 
         private HubMessage CreateHubMessage(ReadOnlySpan<byte> serializedMessage, int messageType)
