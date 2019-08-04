@@ -14,14 +14,9 @@ namespace Protobuf.Protocol.Microbenchmarks
     {
         private MessageDescriptor _messageDescriptor = new MessageDescriptor();
         private Memory<byte> _packedPingMessage;
-        private Memory<byte> _packedInvocationMessage;
-
 
         [Params(1, 10, 100, 1000)]
         public int N;
-
-
-
 
         private List<ArgumentDescriptor> GetArgumentsDescriptors(int stringSize) =>
             new List<ArgumentDescriptor>() { new ArgumentDescriptor(2, new byte[stringSize]) };
@@ -31,12 +26,6 @@ namespace Protobuf.Protocol.Microbenchmarks
         public void Setup()
         {
             _packedPingMessage = _messageDescriptor.PackMessage(HubProtocolConstants.PingMessageType, new byte[N], new List<ArgumentDescriptor>()).ToArray();
-
-            var protobufInvocationMessage = new InvocationMessageProtobuf();
-            var invocationMessageSerialized = protobufInvocationMessage.ToByteArray();
-
-            _packedInvocationMessage = _messageDescriptor.PackMessage(HubProtocolConstants.InvocationMessageType, invocationMessageSerialized, GetArgumentsDescriptors(N)).ToArray();
-
         }
 
         [Benchmark]
@@ -48,7 +37,10 @@ namespace Protobuf.Protocol.Microbenchmarks
         [Benchmark]
         public byte InvocationMessage()
         {
-            return _messageDescriptor.GetMessageType(_packedInvocationMessage.Span);
+            //Allocation on purpore here for test
+            var protobufInvocationMessage = new InvocationMessageProtobuf();
+            var packedInvocationMessage = _messageDescriptor.PackMessage(HubProtocolConstants.InvocationMessageType, protobufInvocationMessage.ToByteArray(), GetArgumentsDescriptors(N));
+            return _messageDescriptor.GetMessageType(packedInvocationMessage);
         }
     }
 }
