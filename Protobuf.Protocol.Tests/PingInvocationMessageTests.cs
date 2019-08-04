@@ -17,8 +17,9 @@ namespace Protobuf.Protocol.Tests
         {
             var logger = new NullLogger<ProtobufHubProtocol>();
             var binder = new Mock<IInvocationBinder>();
+            var protobufType = new List<Type>();
 
-            var protobufHubProtocol = new ProtobufHubProtocol(logger);
+            var protobufHubProtocol = new ProtobufHubProtocol(protobufType, logger);
             var writer = new ArrayBufferWriter<byte>();
 
             protobufHubProtocol.WriteMessage(PingMessage.Instance, writer);

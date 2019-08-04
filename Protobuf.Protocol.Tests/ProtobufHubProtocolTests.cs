@@ -6,6 +6,7 @@ using Protobuf.Protocol;
 using Xunit;
 using Microsoft.AspNetCore.SignalR;
 using Moq;
+using System.Collections.Generic;
 
 namespace Protobuf.Protocol.Tests
 {
@@ -45,8 +46,9 @@ namespace Protobuf.Protocol.Tests
         public void Protocol_Should_Write_Message_Type_At_First_Byte(int messageType)
         {
             var logger = new NullLogger<ProtobufHubProtocol>();
+            var protobufType = new List<Type>();
 
-            var protobufHubProtocol = new ProtobufHubProtocol(logger);
+            var protobufHubProtocol = new ProtobufHubProtocol(protobufType, logger);
             var hubMessage = GetHubMessageFromType(messageType);
             var writer = new ArrayBufferWriter<byte>();
 
@@ -69,8 +71,9 @@ namespace Protobuf.Protocol.Tests
         public void Protocol_Should_Write_Message_Size(int messageType)
         {
             var logger = new NullLogger<ProtobufHubProtocol>();
+            var protobufType = new List<Type>();
 
-            var protobufHubProtocol = new ProtobufHubProtocol(logger);
+            var protobufHubProtocol = new ProtobufHubProtocol(protobufType, logger);
             var hubMessage = GetHubMessageFromType(messageType);
             var writer = new ArrayBufferWriter<byte>();
 
@@ -95,8 +98,9 @@ namespace Protobuf.Protocol.Tests
         public void Protocol_Should_Write_Protobuf_Message_Size(int messageType)
         {
             var logger = new NullLogger<ProtobufHubProtocol>();
+            var protobufType = new List<Type>();
 
-            var protobufHubProtocol = new ProtobufHubProtocol(logger);
+            var protobufHubProtocol = new ProtobufHubProtocol(protobufType, logger);
             var hubMessage = GetHubMessageFromType(messageType);
             var writer = new ArrayBufferWriter<byte>();
 
@@ -111,8 +115,9 @@ namespace Protobuf.Protocol.Tests
         {
             var logger = new NullLogger<ProtobufHubProtocol>();
             var binder = new Mock<IInvocationBinder>();
+            var protobufType = new List<Type>();
 
-            var protobufHubProtocol = new ProtobufHubProtocol(logger);
+            var protobufHubProtocol = new ProtobufHubProtocol(protobufType, logger);
 
             var encodedMessage = new ReadOnlySequence<byte>(new byte[] { 6, 0, 0, 0});
             var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var pingMessage);

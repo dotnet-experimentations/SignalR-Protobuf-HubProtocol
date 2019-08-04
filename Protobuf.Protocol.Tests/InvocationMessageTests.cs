@@ -2,10 +2,10 @@
 using Microsoft.AspNetCore.SignalR.Protocol;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using SignalR.Protobuf.Protocol;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.Text;
 using Xunit;
 
 namespace Protobuf.Protocol.Tests
@@ -15,6 +15,18 @@ namespace Protobuf.Protocol.Tests
         public const string TARGET = "Target";
         public const string INOVATION_ID = "123";
 
+        public object[] GetProtobufTestMessages(params string[] data)
+        {
+            var objects = new List<object>();
+
+            for (var i = 0; i < data.Length; i++)
+            {
+                objects.Add(new TestMessage { Data = data[i] });
+            }
+
+            return objects.ToArray();
+        }
+
         [Theory]
         [InlineData("FooTarget")]
         [InlineData("InvocationMessageTarget")]
@@ -23,8 +35,9 @@ namespace Protobuf.Protocol.Tests
         {
             var logger = new NullLogger<ProtobufHubProtocol>();
             var binder = new Mock<IInvocationBinder>();
+            var protobufType = new List<Type>();
 
-            var protobufHubProtocol = new ProtobufHubProtocol(logger);
+            var protobufHubProtocol = new ProtobufHubProtocol(protobufType, logger);
             var writer = new ArrayBufferWriter<byte>();
             var invocationMessage = new InvocationMessage(target, Array.Empty<object>());
 
@@ -48,8 +61,9 @@ namespace Protobuf.Protocol.Tests
         {
             var logger = new NullLogger<ProtobufHubProtocol>();
             var binder = new Mock<IInvocationBinder>();
+            var protobufType = new List<Type>();
 
-            var protobufHubProtocol = new ProtobufHubProtocol(logger);
+            var protobufHubProtocol = new ProtobufHubProtocol(protobufType, logger);
             var writer = new ArrayBufferWriter<byte>();
             var invocationMessage = new InvocationMessage(invocationId, TARGET, Array.Empty<object>());
 
@@ -69,12 +83,14 @@ namespace Protobuf.Protocol.Tests
         [InlineData("Single Argument")]
         [InlineData("Foo", "Bar")]
         [InlineData("### First Argument ###", "[Second] [Argument]", "%%% Third %%% Argument %%%", "$Forth-$-Argument$")]
+        [InlineData("")]
         public void Protocol_Should_Handle_InvocationMessage_With_String_As_Argument(params string[] arguments)
         {
             var logger = new NullLogger<ProtobufHubProtocol>();
             var binder = new Mock<IInvocationBinder>();
+            var protobufType = new List<Type>();
 
-            var protobufHubProtocol = new ProtobufHubProtocol(logger);
+            var protobufHubProtocol = new ProtobufHubProtocol(protobufType, logger);
             var writer = new ArrayBufferWriter<byte>();
             var invocationMessage = new InvocationMessage(TARGET, arguments);
 
@@ -92,6 +108,79 @@ namespace Protobuf.Protocol.Tests
             Assert.NotEmpty(args);
             Assert.Equal(arguments.Length, args.Length);
             
+            for (var i = 0; i < args.Length; i++)
+            {
+                Assert.Equal(arguments[i], args[i]);
+            }
+        }
+
+        [Theory]
+        [InlineData(42)]
+        [InlineData(2048, 4096)]
+        [InlineData(123, 123456789, 987, 987654321)]
+        [InlineData(-123, 123456789, 987, -987654321)]
+        [InlineData(int.MaxValue, int.MinValue)]
+        public void Protocol_Should_Handle_InvocationMessage_With_Int_As_Argument(params object[] arguments)
+        {
+            var logger = new NullLogger<ProtobufHubProtocol>();
+            var binder = new Mock<IInvocationBinder>();
+            var protobufType = new List<Type>();
+
+            var protobufHubProtocol = new ProtobufHubProtocol(protobufType, logger);
+            var writer = new ArrayBufferWriter<byte>();
+            var invocationMessage = new InvocationMessage(TARGET, arguments);
+
+            protobufHubProtocol.WriteMessage(invocationMessage, writer);
+            var encodedMessage = new ReadOnlySequence<byte>(writer.WrittenSpan.ToArray());
+            var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var resultInvocationMessage);
+
+            Assert.True(result);
+            Assert.NotNull(resultInvocationMessage);
+            Assert.IsType<InvocationMessage>(resultInvocationMessage);
+            Assert.Equal(TARGET, ((InvocationMessage)resultInvocationMessage).Target);
+
+            var args = ((InvocationMessage)resultInvocationMessage).Arguments;
+
+            Assert.NotEmpty(args);
+            Assert.Equal(arguments.Length, args.Length);
+
+            for (var i = 0; i < args.Length; i++)
+            {
+                Assert.Equal(arguments[i], args[i]);
+            }
+        }
+
+        [Theory]
+        [InlineData("Single Argument")]
+        [InlineData("Foo", "Bar")]
+        [InlineData("### First Argument ###", "[Second] [Argument]", "%%% Third %%% Argument %%%", "$Forth-$-Argument$")]
+        [InlineData("")]
+        public void Protocol_Should_Handle_InvocationMessage_With_ProtobufObject_As_Argument(params string[] data)
+        {
+            var logger = new NullLogger<ProtobufHubProtocol>();
+            var binder = new Mock<IInvocationBinder>();
+            var protobufType = new List<Type> { typeof(TestMessage) };
+
+            var protobufHubProtocol = new ProtobufHubProtocol(protobufType, logger);
+            var writer = new ArrayBufferWriter<byte>();
+
+            var arguments = GetProtobufTestMessages(data);
+            var invocationMessage = new InvocationMessage(TARGET, arguments);
+
+            protobufHubProtocol.WriteMessage(invocationMessage, writer);
+            var encodedMessage = new ReadOnlySequence<byte>(writer.WrittenSpan.ToArray());
+            var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var resultInvocationMessage);
+
+            Assert.True(result);
+            Assert.NotNull(resultInvocationMessage);
+            Assert.IsType<InvocationMessage>(resultInvocationMessage);
+            Assert.Equal(TARGET, ((InvocationMessage)resultInvocationMessage).Target);
+
+            var args = ((InvocationMessage)resultInvocationMessage).Arguments;
+
+            Assert.NotEmpty(args);
+            Assert.Equal(arguments.Length, args.Length);
+
             for (var i = 0; i < args.Length; i++)
             {
                 Assert.Equal(arguments[i], args[i]);

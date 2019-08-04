@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Connections;
@@ -19,16 +20,34 @@ namespace Protobuf.Protocol
         private readonly ILogger<ProtobufHubProtocol> _logger;
         private readonly MessageDescriptor _messageDescriptor;
 
+        private readonly Dictionary<Type, int> _protobufTypeToIndex;
+        private readonly Dictionary<int, Type> _indexToProtobufType;
+
+        private readonly int _numberOfNoProtobufObjectHandle = 3;
+
         public string Name => _protocolName;
 
         public int Version => _protocolVersion;
 
         public TransferFormat TransferFormat => TransferFormat.Binary;
 
-        public ProtobufHubProtocol(ILogger<ProtobufHubProtocol> logger)
+        public ProtobufHubProtocol(IEnumerable<Type> protobufTypes, ILogger<ProtobufHubProtocol> logger)
         {
             _logger = logger;
             _messageDescriptor = new MessageDescriptor();
+
+            var size = protobufTypes.Count();
+            _protobufTypeToIndex = new Dictionary<Type, int>(size);
+            _indexToProtobufType = new Dictionary<int, Type>(size);
+
+            var enumerator = protobufTypes.GetEnumerator();
+
+            while (enumerator.MoveNext())
+            {
+                var index = _protobufTypeToIndex.Count + _numberOfNoProtobufObjectHandle + 1;
+                _protobufTypeToIndex[enumerator.Current] = index;
+                _indexToProtobufType[index] = enumerator.Current;
+            }
         }
 
         public bool IsVersionSupported(int version)
@@ -97,11 +116,34 @@ namespace Protobuf.Protocol
 
             for (var i = 0; i < argumentsDescriptor.Count; i++)
             {
-                var argument = Encoding.UTF8.GetString(argumentsDescriptor[i].Argument);
+                var currentDescriptor = argumentsDescriptor[i];
 
-                arguments.Add(argument);
+                if (currentDescriptor.Type <= _numberOfNoProtobufObjectHandle)
+                {
+                    var argument = DeserializeNotProtobufObjectArgument(argumentsDescriptor[i]);
+                    arguments.Add(argument);
+                }
+                else
+                {
+                    var argument = (IMessage)Activator.CreateInstance(_indexToProtobufType[currentDescriptor.Type]);
+                    argument.MergeFrom(currentDescriptor.Argument);
+                    arguments.Add(argument);
+                }
             }
             return arguments.ToArray();
+        }
+
+        public object DeserializeNotProtobufObjectArgument(ArgumentDescriptor argumentDescriptor)
+        {
+            switch (argumentDescriptor.Type)
+            {
+                case 2:
+                    return Encoding.UTF8.GetString(argumentDescriptor.Argument);
+                case 3:
+                    return BitConverter.ToInt32(argumentDescriptor.Argument, 0);
+                default:
+                    return null;
+            }
         }
 
         public void WriteMessage(HubMessage message, IBufferWriter<byte> output)
@@ -210,7 +252,11 @@ namespace Protobuf.Protocol
             switch (argument)
             {
                 case string item:
-                    return new ArgumentDescriptor(-2, Encoding.UTF8.GetBytes(item));
+                    return new ArgumentDescriptor(2, Encoding.UTF8.GetBytes(item));
+                case int item:
+                    return new ArgumentDescriptor(3, BitConverter.GetBytes(item));
+                case IMessage item:
+                    return new ArgumentDescriptor(_protobufTypeToIndex[item.GetType()], item.ToByteArray());
                 default:
                     return null;
             }
