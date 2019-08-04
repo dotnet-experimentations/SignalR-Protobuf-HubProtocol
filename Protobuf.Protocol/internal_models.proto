@@ -3,7 +3,8 @@ syntax = "proto3";
 package SignalR.Protobuf.Protocol;
 
 message InvocationMessageProtobuf {
-
+	string invocationId = 1;
+	string target = 2;
 }
 
 message StreamItemMessageProtobuf {

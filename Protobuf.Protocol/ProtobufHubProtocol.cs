@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.IO;
+using Google.Protobuf;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Protocol;
 using Microsoft.Extensions.Logging;
+using SignalR.Protobuf.Protocol;
 
 namespace Protobuf.Protocol
 {
@@ -14,6 +17,7 @@ namespace Protobuf.Protocol
         private static readonly int _protocolVersion = 1;
 
         private readonly ILogger<ProtobufHubProtocol> _logger;
+        private readonly MessageDescriptor _messageDescriptor;
 
         public string Name => _protocolName;
 
@@ -24,6 +28,7 @@ namespace Protobuf.Protocol
         public ProtobufHubProtocol(ILogger<ProtobufHubProtocol> logger)
         {
             _logger = logger;
+            _messageDescriptor = new MessageDescriptor();
         }
 
         public bool IsVersionSupported(int version)
@@ -38,23 +43,45 @@ namespace Protobuf.Protocol
 
         public bool TryParseMessage(ref ReadOnlySequence<byte> input, IInvocationBinder binder, out HubMessage message)
         {
-            if (input.Length < ProtobufHubProtocolConstants.MESSAGE_HEADER_SIZE)
+            if (input.Length < ProtobufHubProtocolConstants.MESSAGE_HEADER_LENGTH)
             {
                 message = null;
                 return false;
             }
 
-            var protobufMessageType = (int)input.Slice(0, 1).ToArray()[0];
+            var messageType = (int)input.Slice(0, 1).ToArray()[0];
 
-            if (protobufMessageType == HubProtocolConstants.PingMessageType)
-            {
-                message = PingMessage.Instance;
-                input = input.Slice(ProtobufHubProtocolConstants.MESSAGE_HEADER_SIZE);
-                return true;
-            }
+            message = CreateHubMessage(ref input, messageType);
 
-            message = null;
+            var totalSize = BitConverter.ToInt32(input.Slice(1, 4).ToArray(), 0);
+            input = input.Slice(totalSize + ProtobufHubProtocolConstants.TYPE_AND_TOTAL_LENGTH_HEADER);
+
             return true;
+        }
+
+        private HubMessage CreateHubMessage(ref ReadOnlySequence<byte> input, int messageType)
+        {
+            var protobufMessageLength = BitConverter.ToInt32(input.Slice(ProtobufHubProtocolConstants.TYPE_AND_TOTAL_LENGTH_HEADER, 4).ToArray(), 0);
+            var protobufInput = input.Slice(ProtobufHubProtocolConstants.MESSAGE_HEADER_LENGTH, protobufMessageLength);
+
+            switch (messageType)
+            {
+                case HubProtocolConstants.InvocationMessageType:
+                    return CreateHubInvocationMessage(protobufInput);
+                case HubProtocolConstants.PingMessageType:
+                    return PingMessage.Instance;
+                default:
+                    return null;
+            }
+        }
+
+        private HubMessage CreateHubInvocationMessage(ReadOnlySequence<byte> protobufMessage)
+        {
+            var protobufInvocationMessage = new InvocationMessageProtobuf();
+
+            protobufInvocationMessage.MergeFrom(protobufMessage.ToArray());
+
+            return new InvocationMessage(protobufInvocationMessage.InvocationId, protobufInvocationMessage.Target, Array.Empty<object>());
         }
 
         public void WriteMessage(HubMessage message, IBufferWriter<byte> output)
@@ -90,149 +117,57 @@ namespace Protobuf.Protocol
 
         private void WriteInvocationMessage(InvocationMessage invocationMessage, IBufferWriter<byte> output)
         {
-            var totalSize = GetMessageSize();
+            var protobufInvocationMessage = new InvocationMessageProtobuf
+            {
+                InvocationId = invocationMessage.InvocationId ?? "",
+                Target = invocationMessage.Target
+            };
 
-            var byteArray = ArrayPool<byte>.Shared.Rent(totalSize);
-            try
-            {
-                using (var outputStream = new MemoryStream(byteArray))
-                {
-                    WriteProtocolHeader(outputStream, HubProtocolConstants.InvocationMessageType, totalSize);
-                    output.Write(new ReadOnlySpan<byte>(byteArray, 0, totalSize));
-                };
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(byteArray);
-            }
+            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.InvocationMessageType, protobufInvocationMessage.ToByteArray(), new List<ArgumentDescriptor>());
+
+            output.Write(packedMessage);
         }
 
         private void WriteStreamInvocationMessage(StreamInvocationMessage streamInvocationMessage, IBufferWriter<byte> output)
         {
-            var totalSize = GetMessageSize();
+            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.StreamInvocationMessageType, Array.Empty<byte>(), new List<ArgumentDescriptor>());
 
-            var byteArray = ArrayPool<byte>.Shared.Rent(totalSize);
-            try
-            {
-                using (var outputStream = new MemoryStream(byteArray))
-                {
-                    WriteProtocolHeader(outputStream, HubProtocolConstants.StreamInvocationMessageType, totalSize);
-                    output.Write(new ReadOnlySpan<byte>(byteArray, 0, totalSize));
-                };
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(byteArray);
-            }
+            output.Write(packedMessage);
         }
 
         private void WriteItemMessage(StreamItemMessage streamItemMessage, IBufferWriter<byte> output)
         {
-            var totalSize = GetMessageSize();
+            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.StreamItemMessageType, Array.Empty<byte>(), new List<ArgumentDescriptor>());
 
-            var byteArray = ArrayPool<byte>.Shared.Rent(totalSize);
-            try
-            {
-                using (var outputStream = new MemoryStream(byteArray))
-                {
-                    WriteProtocolHeader(outputStream, HubProtocolConstants.StreamItemMessageType, totalSize);
-                    output.Write(new ReadOnlySpan<byte>(byteArray, 0, totalSize));
-                };
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(byteArray);
-            }
+            output.Write(packedMessage);
         }
 
         private void WriteCompletionMessage(CompletionMessage completionMessage, IBufferWriter<byte> output)
         {
-            var totalSize = GetMessageSize();
+            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.CompletionMessageType, Array.Empty<byte>(), new List<ArgumentDescriptor>());
 
-            var byteArray = ArrayPool<byte>.Shared.Rent(totalSize);
-            try
-            {
-                using (var outputStream = new MemoryStream(byteArray))
-                {
-                    WriteProtocolHeader(outputStream, HubProtocolConstants.CompletionMessageType, totalSize);
-                    output.Write(new ReadOnlySpan<byte>(byteArray, 0, totalSize));
-                };
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(byteArray);
-            }
+            output.Write(packedMessage);
         }
 
         private void WriteCancelInvocationMessage(CancelInvocationMessage cancelInvocationMessage, IBufferWriter<byte> output)
         {
-            var totalSize = GetMessageSize();
+            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.CancelInvocationMessageType, Array.Empty<byte>(), new List<ArgumentDescriptor>());
 
-            var byteArray = ArrayPool<byte>.Shared.Rent(totalSize);
-            try
-            {
-                using (var outputStream = new MemoryStream(byteArray))
-                {
-                    WriteProtocolHeader(outputStream, HubProtocolConstants.CancelInvocationMessageType, totalSize);
-                    output.Write(new ReadOnlySpan<byte>(byteArray, 0, totalSize));
-                };
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(byteArray);
-            }
+            output.Write(packedMessage);
         }
 
         private void WritePingMessage(PingMessage pingMessage, IBufferWriter<byte> output)
         {
-            var totalSize = GetMessageSize();
+            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.PingMessageType, Array.Empty<byte>(), new List<ArgumentDescriptor>());
 
-            var byteArray = ArrayPool<byte>.Shared.Rent(totalSize);
-            try
-            {
-                using (var outputStream = new MemoryStream(byteArray))
-                {
-                    WriteProtocolHeader(outputStream, HubProtocolConstants.PingMessageType, totalSize);
-                    output.Write(new ReadOnlySpan<byte>(byteArray, 0, totalSize));
-                };
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(byteArray);
-            }
+            output.Write(packedMessage);
         }
 
         private void WriteCloseMessage(CloseMessage closeMessage, IBufferWriter<byte> output)
         {
-            var totalSize = GetMessageSize();
+            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.CloseMessageType, Array.Empty<byte>(), new List<ArgumentDescriptor>());
 
-            var byteArray = ArrayPool<byte>.Shared.Rent(totalSize);
-            try
-            {
-                using (var outputStream = new MemoryStream(byteArray))
-                {
-                    WriteProtocolHeader(outputStream, HubProtocolConstants.CloseMessageType, totalSize);
-                    output.Write(new ReadOnlySpan<byte>(byteArray, 0, totalSize));
-                };
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(byteArray);
-            }
-        }
-
-        private void WriteProtocolHeader(Stream stream, int messageType, int totalSize)
-        {
-            stream.Write(new byte[] { (byte)messageType }, 0, 1);
-            stream.Write(BitConverter.GetBytes(totalSize), 0, 4);
-            stream.Write(BitConverter.GetBytes(1), 0, 4);
-        }
-
-        private int GetMessageSize()
-        {
-            return 1 // type
-                   + 4 // Int for total size
-                   + 4; // Int for protobuf message size
+            output.Write(packedMessage);
         }
     }
 }
