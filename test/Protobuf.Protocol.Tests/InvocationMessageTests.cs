@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.SignalR.Protocol;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using SignalR.Protobuf.Protocol;
+using Protobuf.Protocol.Tests.Helper;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -13,7 +14,7 @@ namespace Protobuf.Protocol.Tests
     public class InvocationMessageTests
     {
         public const string TARGET = "Target";
-        public const string INOVATION_ID = "123";
+        public const string INVOCATION_ID = "123";
 
         public object[] GetProtobufTestMessages(params string[] data)
         {
@@ -25,18 +26,6 @@ namespace Protobuf.Protocol.Tests
             }
 
             return objects.ToArray();
-        }
-
-        public Dictionary<string, string> GetHeaders(params string[] kvp)
-        {
-            var headers = new Dictionary<string, string>(kvp.Length / 2);
-
-            for (var i = 0; i < kvp.Length; i += 2)
-            {
-                headers.Add(kvp[i], kvp[i + 1]);
-            }
-
-            return headers;
         }
 
         [Theory]
@@ -259,7 +248,7 @@ namespace Protobuf.Protocol.Tests
             var protobufHubProtocol = new ProtobufHubProtocol(protobufType, logger);
             var writer = new ArrayBufferWriter<byte>();
 
-            var headers = GetHeaders(kvp);
+            var headers = Helpers.GetHeaders(kvp);
             var invocationMessage = new InvocationMessage(TARGET, new[] { "foo", "bar" })
             {
                 Headers = headers

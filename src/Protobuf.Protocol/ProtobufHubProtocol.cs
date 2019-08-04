@@ -75,7 +75,16 @@ namespace Protobuf.Protocol
 
             var messageType = _messageDescriptor.GetMessageType(serializedMessage);
 
-            message = CreateHubMessage(serializedMessage, messageType);
+            try
+            {
+                message = CreateHubMessage(serializedMessage, messageType);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                _logger.LogCritical($"Protobuf Type not available, did you register it ?: {ex.ToString()}");
+                message = null;
+                return false;
+            }
 
             input = input.Slice(totalSize + ProtobufHubProtocolConstants.TYPE_AND_TOTAL_LENGTH_HEADER);
 
@@ -88,6 +97,8 @@ namespace Protobuf.Protocol
             {
                 case HubProtocolConstants.InvocationMessageType:
                     return CreateHubInvocationMessage(serializedMessage);
+                case HubProtocolConstants.StreamItemMessageType:
+                    return CreateHubStreamItemMessage(serializedMessage);
                 case HubProtocolConstants.PingMessageType:
                     return PingMessage.Instance;
                 default:
@@ -110,6 +121,24 @@ namespace Protobuf.Protocol
             return new InvocationMessage(protobufInvocationMessage.InvocationId, protobufInvocationMessage.Target, arguments, protobufInvocationMessage.StreamIds.ToArray())
             {
                 Headers = protobufInvocationMessage.Headers
+            };
+        }
+
+        private HubMessage CreateHubStreamItemMessage(ReadOnlySpan<byte> serializedMessage)
+        {
+            var protobufMessage = _messageDescriptor.GetProtobufMessage(serializedMessage);
+
+            var argumentsDescriptors = _messageDescriptor.GetArguments(serializedMessage);
+
+            var arguments = DeserializeMessageArguments(argumentsDescriptors);
+
+            var protobufStreamItemMessage = new StreamItemMessageProtobuf();
+
+            protobufStreamItemMessage.MergeFrom(protobufMessage.ToArray());
+
+            return new StreamItemMessage(protobufStreamItemMessage.InvocationId, arguments.FirstOrDefault())
+            {
+                Headers = protobufStreamItemMessage.Headers
             };
         }
 
@@ -152,6 +181,18 @@ namespace Protobuf.Protocol
         }
 
         public void WriteMessage(HubMessage message, IBufferWriter<byte> output)
+        {
+            try
+            {
+                WriteMessageCore(message, output);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                _logger.LogCritical($"Protobuf Type not available, did you register it ?: {ex.ToString()}");
+            }
+        }
+
+        private void WriteMessageCore(HubMessage message, IBufferWriter<byte> output)
         {
             switch (message)
             {
@@ -216,7 +257,19 @@ namespace Protobuf.Protocol
 
         private void WriteItemMessage(StreamItemMessage streamItemMessage, IBufferWriter<byte> output)
         {
-            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.StreamItemMessageType, Array.Empty<byte>(), new List<ArgumentDescriptor>());
+            var protobufStreamItemMessage = new StreamItemMessageProtobuf
+            {
+                InvocationId = streamItemMessage.InvocationId
+            };
+
+            if (streamItemMessage.Headers != null)
+            {
+                protobufStreamItemMessage.Headers.Add(streamItemMessage.Headers);
+            }
+
+            var item = DescribeArgument(streamItemMessage.Item);
+
+            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.StreamItemMessageType, protobufStreamItemMessage.ToByteArray(), new List<ArgumentDescriptor> { item });
 
             output.Write(packedMessage);
         }

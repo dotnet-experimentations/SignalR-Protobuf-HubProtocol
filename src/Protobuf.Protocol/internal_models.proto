@@ -13,7 +13,9 @@ message InvocationMessageProtobuf {
 }
 
 message StreamItemMessageProtobuf {
-
+	map<string, string> headers = 1;
+	string invocationId = 2;
+	Argument item = 3;
 }
 
 message CompletionMessageProtobuf {
