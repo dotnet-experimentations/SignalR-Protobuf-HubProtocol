@@ -9,7 +9,7 @@ namespace Protobuf.Protocol
     {
         public ReadOnlySpan<byte> PackMessage(int messageType, ReadOnlySpan<byte> protobufMessage, List<ArgumentDescriptor> arguments)
         {
-            var argumentLength = arguments.Sum(argument => argument.Argument.Length + ProtobufHubProtocolConstants.ARGUMENT_HEADER_SIZE);
+            var argumentLength = arguments.Sum(argument => argument.Argument.Length + ProtobufHubProtocolConstants.ARGUMENT_HEADER_LENGTH);
 
             var totalLength = 1 // messageType
                             + 4 // totalLength
@@ -21,17 +21,17 @@ namespace Protobuf.Protocol
             try
             {
                 byteArray[0] = (byte)messageType;
-                BitConverter.GetBytes(totalLength - 5).CopyTo(byteArray, 1);
+                BitConverter.GetBytes(totalLength - ProtobufHubProtocolConstants.TYPE_AND_TOTAL_LENGTH_HEADER).CopyTo(byteArray, 1);
                 BitConverter.GetBytes(protobufMessage.Length).CopyTo(byteArray, 5);
-                protobufMessage.ToArray().CopyTo(byteArray, ProtobufHubProtocolConstants.MESSAGE_HEADER_SIZE);
+                protobufMessage.ToArray().CopyTo(byteArray, ProtobufHubProtocolConstants.MESSAGE_HEADER_LENGTH);
 
-                var currentLength = protobufMessage.Length + ProtobufHubProtocolConstants.MESSAGE_HEADER_SIZE;
+                var currentLength = protobufMessage.Length + ProtobufHubProtocolConstants.MESSAGE_HEADER_LENGTH;
                 for (var i = 0; i < arguments.Count; i++)
                 {
                     BitConverter.GetBytes(arguments[i].Type).CopyTo(byteArray, currentLength);
-                    BitConverter.GetBytes(arguments[i].Argument.Length).CopyTo(byteArray, currentLength + ProtobufHubProtocolConstants.ARGUMENT_HEADER_SIZE / 2);
-                    arguments[i].Argument.CopyTo(byteArray, currentLength + ProtobufHubProtocolConstants.ARGUMENT_HEADER_SIZE);
-                    currentLength = currentLength + ProtobufHubProtocolConstants.ARGUMENT_HEADER_SIZE + arguments[i].Argument.Length;
+                    BitConverter.GetBytes(arguments[i].Argument.Length).CopyTo(byteArray, currentLength + ProtobufHubProtocolConstants.ARGUMENT_HEADER_LENGTH / 2);
+                    arguments[i].Argument.CopyTo(byteArray, currentLength + ProtobufHubProtocolConstants.ARGUMENT_HEADER_LENGTH);
+                    currentLength = currentLength + ProtobufHubProtocolConstants.ARGUMENT_HEADER_LENGTH + arguments[i].Argument.Length;
                 }
 
                 return byteArray.AsSpan().Slice(0, totalLength);
@@ -61,14 +61,14 @@ namespace Protobuf.Protocol
         // Without a complete header, we are not able to retrieve the protobuf object message
         public ReadOnlySpan<byte> GetProtobufMessage(ReadOnlySpan<byte> message)
         {
-            if (message.Length <= ProtobufHubProtocolConstants.MESSAGE_HEADER_SIZE)
+            if (message.Length <= ProtobufHubProtocolConstants.MESSAGE_HEADER_LENGTH)
             {
                 return new ReadOnlySpan<byte>();
             }
 
             var protobufMessageLength = BitConverter.ToInt32(message.Slice(5, 4).ToArray(), 0);
 
-            return message.Slice(ProtobufHubProtocolConstants.MESSAGE_HEADER_SIZE, protobufMessageLength);
+            return message.Slice(ProtobufHubProtocolConstants.MESSAGE_HEADER_LENGTH, protobufMessageLength);
         }
 
         public List<ArgumentDescriptor> GetArguments(ReadOnlySpan<byte> message)
@@ -76,14 +76,14 @@ namespace Protobuf.Protocol
             var arguments = new List<ArgumentDescriptor>();
 
             // Without a complete header, we are not able to retrieve the arguments descriptors
-            if (message.Length <= ProtobufHubProtocolConstants.MESSAGE_HEADER_SIZE)
+            if (message.Length <= ProtobufHubProtocolConstants.MESSAGE_HEADER_LENGTH)
             {
                 return arguments;
             }
 
             var protobufMessageLength = BitConverter.ToInt32(message.Slice(5, 4).ToArray(), 0);
 
-            message = message.Slice(ProtobufHubProtocolConstants.MESSAGE_HEADER_SIZE + protobufMessageLength);
+            message = message.Slice(ProtobufHubProtocolConstants.MESSAGE_HEADER_LENGTH + protobufMessageLength);
 
             while (!message.IsEmpty)
             {

@@ -37,7 +37,7 @@ namespace Protobuf.Protocol.Tests
             var protobufMessage = new TestMessage { Data = data };
             var protobufMessageSerialized = protobufMessage.ToByteArray();
             var argumentsDescriptors = GetArgumentsDescriptors(arguments);
-            var totalLength = protobufMessageSerialized.Length + argumentsDescriptors.Sum(argument => argument.Argument.Length + ProtobufHubProtocolConstants.ARGUMENT_HEADER_SIZE) + 4; //Int => // ProtobufMessageLength
+            var totalLength = protobufMessageSerialized.Length + argumentsDescriptors.Sum(argument => argument.Argument.Length + ProtobufHubProtocolConstants.ARGUMENT_HEADER_LENGTH) + 4; //Int => // ProtobufMessageLength
 
             ReadOnlySpan<byte> messagePacked = messageDescriptor.PackMessage(messageType, protobufMessageSerialized, argumentsDescriptors);
 
@@ -45,24 +45,24 @@ namespace Protobuf.Protocol.Tests
             Assert.Equal(totalLength, BitConverter.ToInt32(messagePacked.Slice(1, 4)));
             Assert.Equal(protobufMessageSerialized.Length, BitConverter.ToInt32(messagePacked.Slice(5, 4)));
             var protobufObject = new TestMessage();
-            protobufObject.MergeFrom(messagePacked.Slice(ProtobufHubProtocolConstants.MESSAGE_HEADER_SIZE, protobufMessageSerialized.Length).ToArray());
+            protobufObject.MergeFrom(messagePacked.Slice(ProtobufHubProtocolConstants.MESSAGE_HEADER_LENGTH, protobufMessageSerialized.Length).ToArray());
             Assert.Equal(protobufMessage, protobufObject);
 
-            var serializedArguments = messagePacked.Slice(ProtobufHubProtocolConstants.MESSAGE_HEADER_SIZE + protobufMessageSerialized.Length);
+            var serializedArguments = messagePacked.Slice(ProtobufHubProtocolConstants.MESSAGE_HEADER_LENGTH + protobufMessageSerialized.Length);
 
             var i = 0;
             while (!serializedArguments.IsEmpty)
             {
                 var argumentType = BitConverter.ToInt32(serializedArguments.Slice(0, 4));
                 var argumentLength = BitConverter.ToInt32(serializedArguments.Slice(4, 4));
-                var argument = serializedArguments.Slice(ProtobufHubProtocolConstants.ARGUMENT_HEADER_SIZE, argumentLength).ToArray();
+                var argument = serializedArguments.Slice(ProtobufHubProtocolConstants.ARGUMENT_HEADER_LENGTH, argumentLength).ToArray();
 
                 protobufObject.MergeFrom(argument);
 
                 Assert.Equal(ARGUMENT_TYPE, argumentType);
                 Assert.Equal(arguments[i++], protobufObject.Data);
 
-                serializedArguments = serializedArguments.Slice(ProtobufHubProtocolConstants.ARGUMENT_HEADER_SIZE + argumentLength);
+                serializedArguments = serializedArguments.Slice(ProtobufHubProtocolConstants.ARGUMENT_HEADER_LENGTH + argumentLength);
             }
         }
 

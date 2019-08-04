@@ -79,7 +79,7 @@ namespace Protobuf.Protocol.Tests
 
             Assert.True(encodedMessage.Length > 4, "The message size is written");
             var totalSize = BitConverter.ToInt32(encodedMessage.Slice(1, 4));
-            Assert.Equal(writer.WrittenCount, totalSize);
+            Assert.Equal(writer.WrittenCount - ProtobufHubProtocolConstants.TYPE_AND_TOTAL_LENGTH_HEADER, totalSize);
         }
 
         [Theory]
@@ -103,7 +103,7 @@ namespace Protobuf.Protocol.Tests
             protobufHubProtocol.WriteMessage(hubMessage, writer);
             var encodedMessage = writer.WrittenSpan;
 
-            Assert.True(encodedMessage.Length >= ProtobufHubProtocolConstants.MESSAGE_HEADER_SIZE, "The protobuf message size is written");
+            Assert.True(encodedMessage.Length >= ProtobufHubProtocolConstants.MESSAGE_HEADER_LENGTH, "The protobuf message size is written");
         }
 
         [Fact]
