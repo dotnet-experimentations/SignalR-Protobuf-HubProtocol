@@ -7,15 +7,20 @@ namespace Protobuf.Protocol
 {
     public class MessageDescriptor
     {
+        public ReadOnlySpan<byte> PackMessage(int messageType, ReadOnlySpan<byte> protobufMessage)
+        {
+            return PackMessage(messageType, protobufMessage, null);
+        }
+
         public ReadOnlySpan<byte> PackMessage(int messageType, ReadOnlySpan<byte> protobufMessage, List<ArgumentDescriptor> arguments)
         {
-            var argumentLength = arguments.Sum(argument => argument.Argument.Length + ProtobufHubProtocolConstants.ARGUMENT_HEADER_LENGTH);
+            var argumentLength = arguments?.Sum(argument => argument.Argument.Length + ProtobufHubProtocolConstants.ARGUMENT_HEADER_LENGTH);
 
             var totalLength = 1 // messageType
                             + 4 // totalLength
                             + 4 // ProtobufMessageLength
                             + protobufMessage.Length
-                            + argumentLength;
+                            + (argumentLength ?? 0);
 
             var byteArray = ArrayPool<byte>.Shared.Rent(totalLength);
             try
@@ -26,7 +31,8 @@ namespace Protobuf.Protocol
                 protobufMessage.ToArray().CopyTo(byteArray, ProtobufHubProtocolConstants.MESSAGE_HEADER_LENGTH);
 
                 var currentLength = protobufMessage.Length + ProtobufHubProtocolConstants.MESSAGE_HEADER_LENGTH;
-                for (var i = 0; i < arguments.Count; i++)
+
+                for (var i = 0; i < arguments?.Count; i++)
                 {
                     BitConverter.GetBytes(arguments[i].Type).CopyTo(byteArray, currentLength);
                     BitConverter.GetBytes(arguments[i].Argument.Length).CopyTo(byteArray, currentLength + ProtobufHubProtocolConstants.ARGUMENT_HEADER_LENGTH / 2);

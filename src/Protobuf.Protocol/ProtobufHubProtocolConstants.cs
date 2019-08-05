@@ -11,5 +11,11 @@ namespace Protobuf.Protocol
         public const int ARGUMENT_HEADER_LENGTH = 8;
 
         public const int TYPE_AND_TOTAL_LENGTH_HEADER = 5;
+
+        public const int STRING_TYPE = 2;
+
+        public const int INT_TYPE = 3;
+
+        public const int DOUBLE_TYPE = 4;
     }
 }

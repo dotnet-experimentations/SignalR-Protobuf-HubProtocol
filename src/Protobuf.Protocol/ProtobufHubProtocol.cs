@@ -19,11 +19,7 @@ namespace Protobuf.Protocol
 
         private readonly ILogger<ProtobufHubProtocol> _logger;
         private readonly MessageDescriptor _messageDescriptor;
-
-        private readonly Dictionary<Type, int> _protobufTypeToIndex;
-        private readonly Dictionary<int, Type> _indexToProtobufType;
-
-        private readonly int _numberOfNoProtobufObjectHandle = 4;
+        private readonly ArgumentSerializer _argumentSerializer;
 
         public string Name => _protocolName;
 
@@ -35,19 +31,7 @@ namespace Protobuf.Protocol
         {
             _logger = logger;
             _messageDescriptor = new MessageDescriptor();
-
-            var size = protobufTypes.Count();
-            _protobufTypeToIndex = new Dictionary<Type, int>(size);
-            _indexToProtobufType = new Dictionary<int, Type>(size);
-
-            var enumerator = protobufTypes.GetEnumerator();
-
-            while (enumerator.MoveNext())
-            {
-                var index = _protobufTypeToIndex.Count + _numberOfNoProtobufObjectHandle + 1;
-                _protobufTypeToIndex[enumerator.Current] = index;
-                _indexToProtobufType[index] = enumerator.Current;
-            }
+            _argumentSerializer = new ArgumentSerializer(protobufTypes);
         }
 
         public bool IsVersionSupported(int version)
@@ -67,7 +51,6 @@ namespace Protobuf.Protocol
                 message = null;
                 return false;
             }
-
 
             var totalSize = BitConverter.ToInt32(input.Slice(1, 4).ToArray(), 0);
 
@@ -97,7 +80,7 @@ namespace Protobuf.Protocol
 
             var argumentsDescriptors = _messageDescriptor.GetArguments(serializedMessage);
 
-            var arguments = DeserializeMessageArguments(argumentsDescriptors);
+            var arguments = _argumentSerializer.DeserializeArguments(argumentsDescriptors);
 
             switch (messageType)
             {
@@ -196,44 +179,6 @@ namespace Protobuf.Protocol
             return new CloseMessage(protobufCloseMessage.Error);
         }
 
-        public object[] DeserializeMessageArguments(List<ArgumentDescriptor> argumentsDescriptor)
-        {
-            var arguments = new List<object>();
-
-            for (var i = 0; i < argumentsDescriptor.Count; i++)
-            {
-                var currentDescriptor = argumentsDescriptor[i];
-
-                if (currentDescriptor.Type <= _numberOfNoProtobufObjectHandle)
-                {
-                    var argument = DeserializeNotProtobufObjectArgument(argumentsDescriptor[i]);
-                    arguments.Add(argument);
-                }
-                else
-                {
-                    var argument = (IMessage)Activator.CreateInstance(_indexToProtobufType[currentDescriptor.Type]);
-                    argument.MergeFrom(currentDescriptor.Argument);
-                    arguments.Add(argument);
-                }
-            }
-            return arguments.ToArray();
-        }
-
-        public object DeserializeNotProtobufObjectArgument(ArgumentDescriptor argumentDescriptor)
-        {
-            switch (argumentDescriptor.Type)
-            {
-                case 2:
-                    return Encoding.UTF8.GetString(argumentDescriptor.Argument);
-                case 3:
-                    return BitConverter.ToInt32(argumentDescriptor.Argument, 0);
-                case 4:
-                    return BitConverter.ToDouble(argumentDescriptor.Argument, 0);
-                default:
-                    return null;
-            }
-        }
-
         public void WriteMessage(HubMessage message, IBufferWriter<byte> output)
         {
             try
@@ -295,7 +240,7 @@ namespace Protobuf.Protocol
                 protobufInvocationMessage.StreamIds.Add(invocationMessage.StreamIds.Select(id => id ?? ""));
             }
 
-            var arguments = SerializeArguments(invocationMessage.Arguments);
+            var arguments = _argumentSerializer.SerializeArguments(invocationMessage.Arguments);
 
             var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.InvocationMessageType, protobufInvocationMessage.ToByteArray(), arguments);
 
@@ -320,7 +265,7 @@ namespace Protobuf.Protocol
                 protobufStreamInvocationMessage.StreamIds.Add(streamInvocationMessage.StreamIds.Select(id => id ?? ""));
             }
 
-            var arguments = SerializeArguments(streamInvocationMessage.Arguments);
+            var arguments = _argumentSerializer.SerializeArguments(streamInvocationMessage.Arguments);
 
             var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.StreamInvocationMessageType, protobufStreamInvocationMessage.ToByteArray(), arguments);
 
@@ -339,7 +284,7 @@ namespace Protobuf.Protocol
                 protobufStreamItemMessage.Headers.Add(streamItemMessage.Headers);
             }
 
-            var item = DescribeArgument(streamItemMessage.Item);
+            var item = _argumentSerializer.SerializeArgument(streamItemMessage.Item);
 
             var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.StreamItemMessageType, protobufStreamItemMessage.ToByteArray(), new List<ArgumentDescriptor> { item });
 
@@ -362,7 +307,7 @@ namespace Protobuf.Protocol
             var result = new ArgumentDescriptor(0, Array.Empty<byte>());
             if (completionMessage.Result != null)
             {
-                result = DescribeArgument(completionMessage.Result);
+                result = _argumentSerializer.SerializeArgument(completionMessage.Result);
             }
 
             var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.CompletionMessageType, protobufCompletionMessage.ToByteArray(), new List<ArgumentDescriptor> { result });
@@ -382,14 +327,14 @@ namespace Protobuf.Protocol
                 protobufCancelInvocationMessage.Headers.Add(cancelInvocationMessage.Headers);
             }
 
-            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.CancelInvocationMessageType, protobufCancelInvocationMessage.ToByteArray(), new List<ArgumentDescriptor>());
+            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.CancelInvocationMessageType, protobufCancelInvocationMessage.ToByteArray());
 
             output.Write(packedMessage);
         }
 
         private void WritePingMessage(PingMessage pingMessage, IBufferWriter<byte> output)
         {
-            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.PingMessageType, Array.Empty<byte>(), new List<ArgumentDescriptor>());
+            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.PingMessageType, Array.Empty<byte>());
 
             output.Write(packedMessage);
         }
@@ -401,39 +346,9 @@ namespace Protobuf.Protocol
                 Error = closeMessage.Error
             };
 
-            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.CloseMessageType, protobufCloseMessage.ToByteArray(), new List<ArgumentDescriptor>());
+            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.CloseMessageType, protobufCloseMessage.ToByteArray());
 
             output.Write(packedMessage);
-        }
-
-        private List<ArgumentDescriptor> SerializeArguments(object[] arguments)
-        {
-            var argumentsDescriptors = new List<ArgumentDescriptor>(arguments.Length);
-
-            for (var i = 0; i < arguments.Length; i++)
-            {
-                var argumentDescriptor = DescribeArgument(arguments[i]);
-                argumentsDescriptors.Add(argumentDescriptor);
-            }
-
-            return argumentsDescriptors;
-        }
-
-        private ArgumentDescriptor DescribeArgument(object argument)
-        {
-            switch (argument)
-            {
-                case string item:
-                    return new ArgumentDescriptor(2, Encoding.UTF8.GetBytes(item));
-                case int item:
-                    return new ArgumentDescriptor(3, BitConverter.GetBytes(item));
-                case double item:
-                    return new ArgumentDescriptor(4, BitConverter.GetBytes(item));
-                case IMessage item:
-                    return new ArgumentDescriptor(_protobufTypeToIndex[item.GetType()], item.ToByteArray());
-                default:
-                    return null;
-            }
         }
     }
 }

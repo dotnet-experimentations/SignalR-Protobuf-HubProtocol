@@ -52,11 +52,11 @@ namespace Protobuf.Protocol
             switch (argument)
             {
                 case string item:
-                    return new ArgumentDescriptor(2, Encoding.UTF8.GetBytes(item));
+                    return new ArgumentDescriptor(ProtobufHubProtocolConstants.STRING_TYPE, Encoding.UTF8.GetBytes(item));
                 case int item:
-                    return new ArgumentDescriptor(3, BitConverter.GetBytes(item));
+                    return new ArgumentDescriptor(ProtobufHubProtocolConstants.INT_TYPE, BitConverter.GetBytes(item));
                 case double item:
-                    return new ArgumentDescriptor(4, BitConverter.GetBytes(item));
+                    return new ArgumentDescriptor(ProtobufHubProtocolConstants.DOUBLE_TYPE, BitConverter.GetBytes(item));
                 case IMessage item:
                     return new ArgumentDescriptor(_protobufTypeToIndex[item.GetType()], item.ToByteArray());
                 default:
