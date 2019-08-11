@@ -5,7 +5,7 @@
         NoArguments = 0,
         IntArguments = 1,
         DoubleArguments = 2,
-        StringARguments = 3,
+        StringArguments = 3,
         ProtobufArguments = 4,
         FewArguments = 5,
         ManyArguments = 6,
