@@ -6,14 +6,16 @@ namespace Protobuf.Protocol.Microbenchmarks
     {
         static void Main(string[] args)
         {
+            BenchmarkSwitcher.FromTypes(new[] {
+                typeof(PingMessageBenchmarks),
+                typeof(InvocationMessageBenchmarks),
+                typeof(StreamInvocationMessageBenchmarks),
+                typeof(StreamItemMessageBenchmarks),
+                typeof(CompletionMessageBenchmarks),
+                typeof(CancelInvocationMessageBenchmarks),
+                typeof(CloseMessageBenchmarks)
+            }).Run(args);
             //var summary = BenchmarkRunner.Run<MessageDescriptorBenchmarks>();
-            _ = BenchmarkRunner.Run<PingMessageBenchmarks>();
-            _ = BenchmarkRunner.Run<InvocationMessageBenchmarks>();
-            _ = BenchmarkRunner.Run<StreamInvocationMessageBenchmarks>();
-            _ = BenchmarkRunner.Run<StreamItemMessageBenchmarks>();
-            _ = BenchmarkRunner.Run<CompletionMessageBenchmarks>();
-            _ = BenchmarkRunner.Run<CancelInvocationMessageBenchmarks>();
-            _ = BenchmarkRunner.Run<CloseMessageBenchmarks>();
         }
     }
 }
