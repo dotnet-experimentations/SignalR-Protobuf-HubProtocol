@@ -2,6 +2,16 @@ syntax = "proto3";
 
 package SignalR.Protobuf.Protocol;
 
+import "google/protobuf/timestamp.proto";
+
 message TestMessage {
 	string data = 1;
+}
+
+message BenchMessage {
+	string data = 1;
+	int32 length = 2;
+	string email = 3;
+	double price = 4;
+	google.protobuf.Timestamp time = 5;
 }

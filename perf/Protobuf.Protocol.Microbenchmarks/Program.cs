@@ -1,5 +1,4 @@
-﻿using System;
-using BenchmarkDotNet.Running;
+﻿using BenchmarkDotNet.Running;
 
 namespace Protobuf.Protocol.Microbenchmarks
 {
@@ -7,7 +6,9 @@ namespace Protobuf.Protocol.Microbenchmarks
     {
         static void Main(string[] args)
         {
-            var summary = BenchmarkRunner.Run<MessageDescriptorBenchmarks>();
+            //var summary = BenchmarkRunner.Run<MessageDescriptorBenchmarks>();
+            _ = BenchmarkRunner.Run<PingMessageBenchmarks>();
+            _ = BenchmarkRunner.Run<InvocationMessageBenchmarks>();
         }
     }
 }
