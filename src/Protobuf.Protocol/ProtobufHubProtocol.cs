@@ -54,6 +54,12 @@ namespace Protobuf.Protocol
 
             var totalSize = BitConverter.ToInt32(input.Slice(1, 4).ToArray(), 0);
 
+            if (input.Length < totalSize)
+            {
+                message = null;
+                return false;
+            }
+
             var serializedMessage = input.Slice(0, totalSize + ProtobufHubProtocolConstants.TYPE_AND_TOTAL_LENGTH_HEADER).ToArray();
 
             var messageType = _messageDescriptor.GetMessageType(serializedMessage);
