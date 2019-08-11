@@ -19,9 +19,9 @@ namespace Protobuf.Protocol.Tests
         [InlineData("##############!!!!!!!!!!!$$$$$$$$$$$$$$^^^^^^^^^^^^^^^***********")]
         public void Protocol_Should_Handle_CancelInvocationMessage_Without_Header(string error)
         {
-            var logger = new NullLogger<ProtobufHubProtocol>();
+            var logger = NullLogger<ProtobufHubProtocol>.Instance;
             var binder = new Mock<IInvocationBinder>();
-            var protobufType = new List<Type>();
+            var protobufType = Array.Empty<Type>();
 
             var protobufHubProtocol = new ProtobufHubProtocol(protobufType, logger);
             var writer = new ArrayBufferWriter<byte>();

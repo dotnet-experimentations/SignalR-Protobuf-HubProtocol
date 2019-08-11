@@ -30,9 +30,9 @@ namespace Protobuf.Protocol.Tests
 
         public void Protocol_Should_Handle_StreamItemMessage_Without_Header(object item)
         {
-            var logger = new NullLogger<ProtobufHubProtocol>();
+            var logger = NullLogger<ProtobufHubProtocol>.Instance;
             var binder = new Mock<IInvocationBinder>();
-            var protobufType = new List<Type>();
+            var protobufType = Array.Empty<Type>();
 
             var protobufHubProtocol = new ProtobufHubProtocol(protobufType, logger);
             var writer = new ArrayBufferWriter<byte>();
@@ -56,7 +56,7 @@ namespace Protobuf.Protocol.Tests
         [InlineData("")]
         public void Protocol_Should_Handle_StreamItemMessage_With_ProtobufObject_Item_And_No_Header(string data)
         {
-            var logger = new NullLogger<ProtobufHubProtocol>();
+            var logger = NullLogger<ProtobufHubProtocol>.Instance;
             var binder = new Mock<IInvocationBinder>();
             var protobufType = new List<Type> { typeof(TestMessage) };
 
@@ -82,9 +82,9 @@ namespace Protobuf.Protocol.Tests
         [InlineData("toto", "tata", "tutu", "titi", "42", "28")]
         public void Protocol_Should_Handle_StreamItemMessage_With_Headers(params string[] kvp)
         {
-            var logger = new NullLogger<ProtobufHubProtocol>();
+            var logger = NullLogger<ProtobufHubProtocol>.Instance;
             var binder = new Mock<IInvocationBinder>();
-            var protobufType = new List<Type>();
+            var protobufType = Array.Empty<Type>();
 
             var protobufHubProtocol = new ProtobufHubProtocol(protobufType, logger);
             var writer = new ArrayBufferWriter<byte>();

@@ -45,8 +45,8 @@ namespace Protobuf.Protocol.Tests
         [InlineData(HubProtocolConstants.CloseMessageType)]
         public void Protocol_Should_Write_Message_Type_At_First_Byte(int messageType)
         {
-            var logger = new NullLogger<ProtobufHubProtocol>();
-            var protobufType = new List<Type>();
+            var logger = NullLogger<ProtobufHubProtocol>.Instance;
+            var protobufType = Array.Empty<Type>();
 
             var protobufHubProtocol = new ProtobufHubProtocol(protobufType, logger);
             var hubMessage = GetHubMessageFromType(messageType);
@@ -70,8 +70,8 @@ namespace Protobuf.Protocol.Tests
         // The total size of the message is written on 4 bytes after the message type
         public void Protocol_Should_Write_Message_Size(int messageType)
         {
-            var logger = new NullLogger<ProtobufHubProtocol>();
-            var protobufType = new List<Type>();
+            var logger = NullLogger<ProtobufHubProtocol>.Instance;
+            var protobufType = Array.Empty<Type>();
 
             var protobufHubProtocol = new ProtobufHubProtocol(protobufType, logger);
             var hubMessage = GetHubMessageFromType(messageType);
@@ -97,8 +97,8 @@ namespace Protobuf.Protocol.Tests
         // It's used to know how many bytes are needed to deserialized the object
         public void Protocol_Should_Write_Protobuf_Message_Size(int messageType)
         {
-            var logger = new NullLogger<ProtobufHubProtocol>();
-            var protobufType = new List<Type>();
+            var logger = NullLogger<ProtobufHubProtocol>.Instance;
+            var protobufType = Array.Empty<Type>();
 
             var protobufHubProtocol = new ProtobufHubProtocol(protobufType, logger);
             var hubMessage = GetHubMessageFromType(messageType);
@@ -113,9 +113,9 @@ namespace Protobuf.Protocol.Tests
         [Fact]
         public void Protocol_Should_Not_Parse_Message_If_Less_Than_Header_Size()
         {
-            var logger = new NullLogger<ProtobufHubProtocol>();
+            var logger = NullLogger<ProtobufHubProtocol>.Instance;
             var binder = new Mock<IInvocationBinder>();
-            var protobufType = new List<Type>();
+            var protobufType = Array.Empty<Type>();
 
             var protobufHubProtocol = new ProtobufHubProtocol(protobufType, logger);
 

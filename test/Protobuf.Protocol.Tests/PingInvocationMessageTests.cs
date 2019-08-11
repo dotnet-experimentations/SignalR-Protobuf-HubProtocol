@@ -15,9 +15,9 @@ namespace Protobuf.Protocol.Tests
         [Fact]
         public void Protocol_Should_Handle_PingMessage()
         {
-            var logger = new NullLogger<ProtobufHubProtocol>();
+            var logger = NullLogger<ProtobufHubProtocol>.Instance;
             var binder = new Mock<IInvocationBinder>();
-            var protobufType = new List<Type>();
+            var protobufType = Array.Empty<Type>();
 
             var protobufHubProtocol = new ProtobufHubProtocol(protobufType, logger);
             var writer = new ArrayBufferWriter<byte>();
