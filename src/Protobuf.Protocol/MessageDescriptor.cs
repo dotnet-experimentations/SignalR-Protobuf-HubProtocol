@@ -61,7 +61,7 @@ namespace Protobuf.Protocol
                 return 0;
             }
 
-            return BitConverter.ToInt32(message.Slice(1, 4).ToArray(), 0);
+            return BitConverter.ToInt32(message.Slice(1, 4));
         }
 
         // Without a complete header, we are not able to retrieve the protobuf object message
@@ -72,7 +72,7 @@ namespace Protobuf.Protocol
                 return new ReadOnlySpan<byte>();
             }
 
-            var protobufMessageLength = BitConverter.ToInt32(message.Slice(5, 4).ToArray(), 0);
+            var protobufMessageLength = BitConverter.ToInt32(message.Slice(5, 4));
 
             return message.Slice(ProtobufHubProtocolConstants.MESSAGE_HEADER_LENGTH, protobufMessageLength);
         }
@@ -87,14 +87,14 @@ namespace Protobuf.Protocol
                 return arguments;
             }
 
-            var protobufMessageLength = BitConverter.ToInt32(message.Slice(5, 4).ToArray(), 0);
+            var protobufMessageLength = BitConverter.ToInt32(message.Slice(5, 4));
 
             message = message.Slice(ProtobufHubProtocolConstants.MESSAGE_HEADER_LENGTH + protobufMessageLength);
 
             while (!message.IsEmpty)
             {
-                var argumentType = BitConverter.ToInt32(message.Slice(0, 4).ToArray(), 0);
-                var argumentLength = BitConverter.ToInt32(message.Slice(4, 4).ToArray(), 0);
+                var argumentType = BitConverter.ToInt32(message.Slice(0, 4));
+                var argumentLength = BitConverter.ToInt32(message.Slice(4, 4));
                 var argument = message.Slice(8, argumentLength).ToArray();
 
                 var messageArgument = new ArgumentDescriptor(argumentType, argument);
