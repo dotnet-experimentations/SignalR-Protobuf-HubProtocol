@@ -45,17 +45,6 @@ namespace Protobuf.Protocol
             return HubProtocolExtensions.GetMessageBytes(this, message);
         }
 
-        private ArraySegment<byte> GetArraySegment(in ReadOnlySequence<byte> input)
-        {
-            if (input.IsSingleSegment)
-            {
-                var isArray = MemoryMarshal.TryGetArray(input.First, out var arraySegment);
-                return arraySegment;
-            }
-
-            return new ArraySegment<byte>(input.ToArray());
-        }
-
         public bool TryParseMessage(ref ReadOnlySequence<byte> input, IInvocationBinder binder, out HubMessage message)
         {
             if (input.Length < ProtobufHubProtocolConstants.MESSAGE_HEADER_LENGTH)
@@ -64,7 +53,8 @@ namespace Protobuf.Protocol
                 return false;
             }
 
-            var totalSize = BitConverter.ToInt32(GetArraySegment(input.Slice(1, 4)));
+            ReadOnlySpan<byte> spanInput = input.IsSingleSegment ? input.First.Span : input.ToArray();
+            var totalSize = _messageDescriptor.GetTotalMessageLength(spanInput);
 
             if (input.Length < totalSize)
             {
@@ -78,7 +68,7 @@ namespace Protobuf.Protocol
                 return false;
             }
 
-            var serializedMessage = input.Slice(0, totalSize + ProtobufHubProtocolConstants.TYPE_AND_TOTAL_LENGTH_HEADER).ToArray();
+            var serializedMessage = spanInput.Slice(0, totalSize + ProtobufHubProtocolConstants.TYPE_AND_TOTAL_LENGTH_HEADER);
 
             var messageType = _messageDescriptor.GetMessageType(serializedMessage);
 
