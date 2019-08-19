@@ -40,7 +40,7 @@ namespace Protobuf.Protocol
                     currentLength = currentLength + ProtobufHubProtocolConstants.ARGUMENT_HEADER_LENGTH + arguments[i].Argument.Length;
                 }
 
-                return byteArray.AsSpan().Slice(0, totalLength);
+                return byteArray.AsSpan(0, totalLength);
             }
             finally
             {
