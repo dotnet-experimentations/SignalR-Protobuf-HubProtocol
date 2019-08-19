@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Buffers;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace Protobuf.Protocol
 {
+    // TODO: Handle Big Endian
     public static class MessageDescriptor
     {
         public static ReadOnlySpan<byte> PackMessage(int messageType, ReadOnlySpan<byte> protobufMessage)
@@ -26,17 +29,31 @@ namespace Protobuf.Protocol
             try
             {
                 byteArray[0] = (byte)messageType;
-                BitConverter.GetBytes(totalLength - ProtobufHubProtocolConstants.TYPE_AND_TOTAL_LENGTH_HEADER).CopyTo(byteArray, 1);
-                BitConverter.GetBytes(protobufMessage.Length).CopyTo(byteArray, 5);
-                protobufMessage.ToArray().CopyTo(byteArray, ProtobufHubProtocolConstants.MESSAGE_HEADER_LENGTH);
+
+                // Span share memory adress with byteArray
+                var span = byteArray.AsSpan(1, 4);
+                BinaryPrimitives.WriteInt32LittleEndian(span, totalLength - ProtobufHubProtocolConstants.TYPE_AND_TOTAL_LENGTH_HEADER);
+
+                span = byteArray.AsSpan(ProtobufHubProtocolConstants.TYPE_AND_TOTAL_LENGTH_HEADER, 4);
+                BinaryPrimitives.WriteInt32LittleEndian(span, protobufMessage.Length);
+ 
+                span = byteArray.AsSpan(ProtobufHubProtocolConstants.MESSAGE_HEADER_LENGTH);
+
+                protobufMessage.CopyTo(span);
 
                 var currentLength = protobufMessage.Length + ProtobufHubProtocolConstants.MESSAGE_HEADER_LENGTH;
 
                 for (var i = 0; i < arguments?.Count; i++)
                 {
-                    BitConverter.GetBytes(arguments[i].Type).CopyTo(byteArray, currentLength);
-                    BitConverter.GetBytes(arguments[i].Argument.Length).CopyTo(byteArray, currentLength + ProtobufHubProtocolConstants.ARGUMENT_HEADER_LENGTH / 2);
-                    arguments[i].Argument.CopyTo(byteArray, currentLength + ProtobufHubProtocolConstants.ARGUMENT_HEADER_LENGTH);
+                    span = byteArray.AsSpan(currentLength, 4);
+                    BinaryPrimitives.WriteInt32LittleEndian(span, arguments[i].Type);
+
+                    span = byteArray.AsSpan(currentLength + ProtobufHubProtocolConstants.ARGUMENT_HEADER_LENGTH / 2, 4);
+                    BinaryPrimitives.WriteInt32LittleEndian(span, arguments[i].Argument.Length);
+
+                    span = byteArray.AsSpan(currentLength + ProtobufHubProtocolConstants.ARGUMENT_HEADER_LENGTH);
+                    arguments[i].Argument.CopyTo(span);
+
                     currentLength = currentLength + ProtobufHubProtocolConstants.ARGUMENT_HEADER_LENGTH + arguments[i].Argument.Length;
                 }
 
@@ -54,7 +71,7 @@ namespace Protobuf.Protocol
             {
                 return 0;
             }
-            return message[0];
+            return MemoryMarshal.Read<byte>(message.Slice(0, 1));
         }
 
         public static int GetTotalMessageLength(ReadOnlySpan<byte> message)
@@ -65,7 +82,7 @@ namespace Protobuf.Protocol
                 return 0;
             }
 
-            return BitConverter.ToInt32(message.Slice(1, 4));
+            return BinaryPrimitives.ReadInt32LittleEndian(message.Slice(1, 4));
         }
 
         // Without a complete header, we are not able to retrieve the protobuf object message
@@ -76,7 +93,7 @@ namespace Protobuf.Protocol
                 return new ReadOnlySpan<byte>();
             }
 
-            var protobufMessageLength = BitConverter.ToInt32(message.Slice(5, 4));
+            var protobufMessageLength = BinaryPrimitives.ReadInt32LittleEndian(message.Slice(5, 4));
 
             return message.Slice(ProtobufHubProtocolConstants.MESSAGE_HEADER_LENGTH, protobufMessageLength);
         }
@@ -91,15 +108,15 @@ namespace Protobuf.Protocol
                 return arguments;
             }
 
-            var protobufMessageLength = BitConverter.ToInt32(message.Slice(5, 4));
+            var protobufMessageLength = BinaryPrimitives.ReadInt32LittleEndian(message.Slice(5, 4));
 
             message = message.Slice(ProtobufHubProtocolConstants.MESSAGE_HEADER_LENGTH + protobufMessageLength);
 
             while (!message.IsEmpty)
             {
-                var argumentType = BitConverter.ToInt32(message.Slice(0, 4));
-                var argumentLength = BitConverter.ToInt32(message.Slice(4, 4));
-                var argument = message.Slice(8, argumentLength).ToArray();
+                var argumentType = BinaryPrimitives.ReadInt32LittleEndian(message.Slice(0, 4));
+                var argumentLength = BinaryPrimitives.ReadInt32LittleEndian(message.Slice(4, 4));
+                var argument = message.Slice(ProtobufHubProtocolConstants.ARGUMENT_HEADER_LENGTH, argumentLength).ToArray();
 
                 var messageArgument = new ArgumentDescriptor(argumentType, argument);
                 arguments.Add(messageArgument);

@@ -1,7 +1,9 @@
 ﻿using Google.Protobuf;
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Protobuf.Protocol
@@ -94,9 +96,9 @@ namespace Protobuf.Protocol
                 case 2:
                     return Encoding.UTF8.GetString(argumentDescriptor.Argument);
                 case 3:
-                    return BitConverter.ToInt32(argumentDescriptor.Argument, 0);
+                    return BinaryPrimitives.ReadInt32LittleEndian(argumentDescriptor.Argument);
                 case 4:
-                    return BitConverter.ToDouble(argumentDescriptor.Argument, 0);
+                    return MemoryMarshal.Read<double>(argumentDescriptor.Argument);
                 default:
                     return null;
             }
