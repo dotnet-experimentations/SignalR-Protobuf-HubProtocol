@@ -6,6 +6,17 @@ namespace Protobuf.Protocol
 {
     public struct ProtobufHubProtocolConstants
     {
+        public const int TYPE_PLACEHOLDER_SIZE = 1;
+
+        public const int TOTAL_LENGTH_PLACEHOLDER_SIZE = 4;
+
+        public const int PROTOBUF_MESSAGE_LENGTH_PLACEHOLDER_SIZE = 4;
+
+        public const int ARG_TYPE_PLACEHOLDER_SIZE = 4;
+
+        public const int ARG_LENGTH_PLACEHOLDER_SIZE = 4;
+        
+
         public const int MESSAGE_HEADER_LENGTH = 9;
 
         public const int ARGUMENT_HEADER_LENGTH = 8;
