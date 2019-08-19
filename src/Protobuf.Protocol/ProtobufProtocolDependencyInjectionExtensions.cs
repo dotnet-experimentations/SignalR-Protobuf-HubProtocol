@@ -16,7 +16,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
         public static TBuilder AddProtobufProtocol<TBuilder>(this TBuilder builder, IEnumerable<Type> protobufTypes) where TBuilder : ISignalRBuilder
         {
-            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IHubProtocol>(p => new ProtobufHubProtocol(protobufTypes, p.GetRequiredService<ILogger<ProtobufHubProtocol>>())));
+            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IHubProtocol, ProtobufHubProtocol>(p => new ProtobufHubProtocol(protobufTypes, p.GetRequiredService<ILogger<ProtobufHubProtocol>>())));
             return builder;
         }
     }
