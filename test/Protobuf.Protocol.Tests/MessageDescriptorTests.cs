@@ -33,13 +33,12 @@ namespace Protobuf.Protocol.Tests
         [InlineData(HubProtocolConstants.CloseMessageType, "", "")]
         public void MessageDescriptor_Should_Properly_Pack_A_Message_Proto(int messageType, string data, params string[] arguments)
         {
-            var messageDescriptor = new MessageDescriptor();
             var protobufMessage = new TestMessage { Data = data };
             var protobufMessageSerialized = protobufMessage.ToByteArray();
             var argumentsDescriptors = GetArgumentsDescriptors(arguments);
             var totalLength = protobufMessageSerialized.Length + argumentsDescriptors.Sum(argument => argument.Argument.Length + ProtobufHubProtocolConstants.ARGUMENT_HEADER_LENGTH) + 4; //Int => // ProtobufMessageLength
 
-            ReadOnlySpan<byte> messagePacked = messageDescriptor.PackMessage(messageType, protobufMessageSerialized, argumentsDescriptors);
+            ReadOnlySpan<byte> messagePacked = MessageDescriptor.PackMessage(messageType, protobufMessageSerialized, argumentsDescriptors);
 
             Assert.Equal(messageType, messagePacked[0]);
             Assert.Equal(totalLength, BitConverter.ToInt32(messagePacked.Slice(1, 4)));
@@ -73,13 +72,12 @@ namespace Protobuf.Protocol.Tests
         [InlineData(HubProtocolConstants.CloseMessageType)]
         public void MessageDescriptor_Should_Retrieve_MessageType_From_A_PackedMessage(int messageType)
         {
-            var messageDescriptor = new MessageDescriptor();
             var protobufMessageSerialized = new TestMessage { Data = "FooBar" }.ToByteArray();
             var argumentsDescriptors = GetArgumentsDescriptors("myArg");
 
-            ReadOnlySpan<byte> messagePacked = messageDescriptor.PackMessage(messageType, protobufMessageSerialized, argumentsDescriptors);
+            ReadOnlySpan<byte> messagePacked = MessageDescriptor.PackMessage(messageType, protobufMessageSerialized, argumentsDescriptors);
 
-            var type = messageDescriptor.GetMessageType(messagePacked);
+            var type = MessageDescriptor.GetMessageType(messagePacked);
 
             Assert.Equal(messageType, type);
         }
@@ -88,9 +86,8 @@ namespace Protobuf.Protocol.Tests
         public void MessageDescriptor_Should_Retrieve_A_Zero_TotalLength_When_PackedMessage_DoesNot_Have_Enought_Length()
         {
             var messagePacked = new byte[] { 1, 2, 3 };
-            var messageDescriptor = new MessageDescriptor();
 
-            var length = messageDescriptor.GetTotalMessageLength(messagePacked);
+            var length = MessageDescriptor.GetTotalMessageLength(messagePacked);
 
             Assert.Equal(0, length);
         }
@@ -102,13 +99,12 @@ namespace Protobuf.Protocol.Tests
         [InlineData(12, "", "")]
         public void MessageDescriptor_Should_Retrieve_TotalLength_From_A_PackedMessage(int totalLength, string data, params string[] arguments)
         {
-            var messageDescriptor = new MessageDescriptor();
             var protobufMessageSerialized = new TestMessage { Data = data }.ToByteArray();
             var argumentsDescriptors = GetArgumentsDescriptors(arguments);
 
-            ReadOnlySpan<byte> messagePacked = messageDescriptor.PackMessage(1, protobufMessageSerialized, argumentsDescriptors);
+            ReadOnlySpan<byte> messagePacked = MessageDescriptor.PackMessage(1, protobufMessageSerialized, argumentsDescriptors);
 
-            var length = messageDescriptor.GetTotalMessageLength(messagePacked);
+            var length = MessageDescriptor.GetTotalMessageLength(messagePacked);
 
             Assert.Equal(totalLength, length);
         }
@@ -117,9 +113,8 @@ namespace Protobuf.Protocol.Tests
         public void MessageDescriptor_Should_Not_Retrieve_ProtobufMessage_When_PackedMessage_DoesNot_Have_A_Full_Header()
         {
             var messagePacked = new byte[] { 1, 2, 3 };
-            var messageDescriptor = new MessageDescriptor();
 
-            var protobufMessage = messageDescriptor.GetProtobufMessage(messagePacked);
+            var protobufMessage = MessageDescriptor.GetProtobufMessage(messagePacked);
 
             Assert.Equal(0, protobufMessage.Length);
         }
@@ -131,13 +126,12 @@ namespace Protobuf.Protocol.Tests
         [InlineData("")]
         public void MessageDescriptor_Should_Retrieve_ProtobufMessage_From_A_PackedMessage(string data)
         {
-            var messageDescriptor = new MessageDescriptor();
             var protobufMessageSerialized = new TestMessage { Data = data }.ToByteArray();
             var argumentsDescriptors = GetArgumentsDescriptors("arg");
 
-            ReadOnlySpan<byte> messagePacked = messageDescriptor.PackMessage(1, protobufMessageSerialized, argumentsDescriptors);
+            ReadOnlySpan<byte> messagePacked = MessageDescriptor.PackMessage(1, protobufMessageSerialized, argumentsDescriptors);
 
-            var protobufMessage = messageDescriptor.GetProtobufMessage(messagePacked);
+            var protobufMessage = MessageDescriptor.GetProtobufMessage(messagePacked);
             var protobufObject = new TestMessage();
             protobufObject.MergeFrom(protobufMessage.ToArray());
 
@@ -148,9 +142,8 @@ namespace Protobuf.Protocol.Tests
         public void MessageDescriptor_Should_Not_Retrieve_ArgumentsDescriptors_When_PackedMessage_DoesNot_Have_A_Full_Header()
         {
             var messagePacked = new byte[] { 1, 2, 3, 4, 5, 6 };
-            var messageDescriptor = new MessageDescriptor();
 
-            var argumentDescriptors = messageDescriptor.GetArguments(messagePacked);
+            var argumentDescriptors = MessageDescriptor.GetArguments(messagePacked);
 
             Assert.Empty(argumentDescriptors);
         }
@@ -163,13 +156,12 @@ namespace Protobuf.Protocol.Tests
         [InlineData("")]
         public void MessageDescriptor_Should_Retrieve_Arguments_From_A_PackedMessage(params string[] arguments)
         {
-            var messageDescriptor = new MessageDescriptor();
             var protobufMessageSerialized = new TestMessage { Data = "FooBar" }.ToByteArray();
             var argumentsDescriptors = GetArgumentsDescriptors(arguments);
 
-            ReadOnlySpan<byte> messagePacked = messageDescriptor.PackMessage(1, protobufMessageSerialized, argumentsDescriptors);
+            ReadOnlySpan<byte> messagePacked = MessageDescriptor.PackMessage(1, protobufMessageSerialized, argumentsDescriptors);
 
-            var descriptors = messageDescriptor.GetArguments(messagePacked);
+            var descriptors = MessageDescriptor.GetArguments(messagePacked);
 
             var i = 0;
             foreach (var descriptor in descriptors)

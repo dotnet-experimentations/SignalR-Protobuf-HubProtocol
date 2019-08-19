@@ -19,7 +19,6 @@ namespace Protobuf.Protocol
         private static readonly int _protocolVersion = 1;
 
         private readonly ILogger<ProtobufHubProtocol> _logger;
-        private readonly MessageDescriptor _messageDescriptor;
         private readonly ArgumentSerializer _argumentSerializer;
 
         public string Name => _protocolName;
@@ -31,7 +30,6 @@ namespace Protobuf.Protocol
         public ProtobufHubProtocol(IEnumerable<Type> protobufTypes, ILogger<ProtobufHubProtocol> logger)
         {
             _logger = logger;
-            _messageDescriptor = new MessageDescriptor();
             _argumentSerializer = new ArgumentSerializer(protobufTypes);
         }
 
@@ -45,6 +43,17 @@ namespace Protobuf.Protocol
             return HubProtocolExtensions.GetMessageBytes(this, message);
         }
 
+        private static ArraySegment<byte> GetArraySegment(in ReadOnlySequence<byte> input)
+        {
+            if (input.IsSingleSegment)
+            {
+                _ = MemoryMarshal.TryGetArray(input.First, out var arraySegment);
+                return arraySegment;
+            }
+
+            return new ArraySegment<byte>(input.ToArray());
+        }
+
         public bool TryParseMessage(ref ReadOnlySequence<byte> input, IInvocationBinder binder, out HubMessage message)
         {
             if (input.Length < ProtobufHubProtocolConstants.MESSAGE_HEADER_LENGTH)
@@ -53,28 +62,19 @@ namespace Protobuf.Protocol
                 return false;
             }
 
-            ReadOnlySpan<byte> spanInput = input.IsSingleSegment ? input.First.Span : input.ToArray();
-            var totalSize = _messageDescriptor.GetTotalMessageLength(spanInput);
+            var arraySegment = GetArraySegment(input);
+
+            var totalSize = MessageDescriptor.GetTotalMessageLength(arraySegment.Array);
 
             if (input.Length < totalSize)
             {
                 message = null;
                 return false;
             }
-
-            if (input.Length < totalSize)
-            {
-                message = null;
-                return false;
-            }
-
-            var serializedMessage = spanInput.Slice(0, totalSize + ProtobufHubProtocolConstants.TYPE_AND_TOTAL_LENGTH_HEADER);
-
-            var messageType = _messageDescriptor.GetMessageType(serializedMessage);
 
             try
             {
-                message = CreateHubMessage(serializedMessage, messageType);
+                message = CreateHubMessage(arraySegment.Array);
             }
             catch (KeyNotFoundException ex)
             {
@@ -88,24 +88,22 @@ namespace Protobuf.Protocol
             return message == null ? false : true;
         }
 
-        private HubMessage CreateHubMessage(ReadOnlySpan<byte> serializedMessage, int messageType)
+        private HubMessage CreateHubMessage(ReadOnlySpan<byte> serializedMessage)
         {
-            var protobufMessage = _messageDescriptor.GetProtobufMessage(serializedMessage);
+            var messageType = MessageDescriptor.GetMessageType(serializedMessage);
 
-            var argumentsDescriptors = _messageDescriptor.GetArguments(serializedMessage);
-
-            var arguments = _argumentSerializer.DeserializeArguments(argumentsDescriptors);
+            var protobufMessage = MessageDescriptor.GetProtobufMessage(serializedMessage);
 
             switch (messageType)
             {
                 case HubProtocolConstants.InvocationMessageType:
-                    return CreateHubInvocationMessage(protobufMessage, arguments);
+                    return CreateHubInvocationMessage(protobufMessage, GetArguments(serializedMessage));
                 case HubProtocolConstants.StreamItemMessageType:
-                    return CreateHubStreamItemMessage(protobufMessage, arguments);
+                    return CreateHubStreamItemMessage(protobufMessage, GetArguments(serializedMessage));
                 case HubProtocolConstants.CompletionMessageType:
-                    return CreateHubCompletionMessage(protobufMessage, arguments);
+                    return CreateHubCompletionMessage(protobufMessage, GetArguments(serializedMessage));
                 case HubProtocolConstants.StreamInvocationMessageType:
-                    return CreateHubStreamInvocationMessage(protobufMessage, arguments);
+                    return CreateHubStreamInvocationMessage(protobufMessage, GetArguments(serializedMessage));
                 case HubProtocolConstants.CancelInvocationMessageType:
                     return CreateHubCancelInvocationMessage(protobufMessage);
                 case HubProtocolConstants.PingMessageType:
@@ -114,6 +112,13 @@ namespace Protobuf.Protocol
                     return CreateHubCloseMessage(protobufMessage);
                 default:
                     return null;
+            }
+
+            object[] GetArguments(ReadOnlySpan<byte> message)
+            {
+                var argumentsDescriptors = MessageDescriptor.GetArguments(message);
+
+                return _argumentSerializer.DeserializeArguments(argumentsDescriptors);
             }
         }
 
@@ -256,7 +261,7 @@ namespace Protobuf.Protocol
 
             var arguments = _argumentSerializer.SerializeArguments(invocationMessage.Arguments);
 
-            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.InvocationMessageType, protobufInvocationMessage.ToByteArray(), arguments);
+            var packedMessage = MessageDescriptor.PackMessage(HubProtocolConstants.InvocationMessageType, protobufInvocationMessage.ToByteArray(), arguments);
 
             output.Write(packedMessage);
         }
@@ -281,7 +286,7 @@ namespace Protobuf.Protocol
 
             var arguments = _argumentSerializer.SerializeArguments(streamInvocationMessage.Arguments);
 
-            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.StreamInvocationMessageType, protobufStreamInvocationMessage.ToByteArray(), arguments);
+            var packedMessage = MessageDescriptor.PackMessage(HubProtocolConstants.StreamInvocationMessageType, protobufStreamInvocationMessage.ToByteArray(), arguments);
 
             output.Write(packedMessage);
         }
@@ -300,7 +305,7 @@ namespace Protobuf.Protocol
 
             var item = _argumentSerializer.SerializeArgument(streamItemMessage.Item);
 
-            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.StreamItemMessageType, protobufStreamItemMessage.ToByteArray(), new List<ArgumentDescriptor> { item });
+            var packedMessage = MessageDescriptor.PackMessage(HubProtocolConstants.StreamItemMessageType, protobufStreamItemMessage.ToByteArray(), new List<ArgumentDescriptor> { item });
 
             output.Write(packedMessage);
         }
@@ -324,7 +329,7 @@ namespace Protobuf.Protocol
                 result = _argumentSerializer.SerializeArgument(completionMessage.Result);
             }
 
-            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.CompletionMessageType, protobufCompletionMessage.ToByteArray(), new List<ArgumentDescriptor> { result });
+            var packedMessage = MessageDescriptor.PackMessage(HubProtocolConstants.CompletionMessageType, protobufCompletionMessage.ToByteArray(), new List<ArgumentDescriptor> { result });
 
             output.Write(packedMessage);
         }
@@ -341,14 +346,14 @@ namespace Protobuf.Protocol
                 protobufCancelInvocationMessage.Headers.Add(cancelInvocationMessage.Headers);
             }
 
-            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.CancelInvocationMessageType, protobufCancelInvocationMessage.ToByteArray());
+            var packedMessage = MessageDescriptor.PackMessage(HubProtocolConstants.CancelInvocationMessageType, protobufCancelInvocationMessage.ToByteArray());
 
             output.Write(packedMessage);
         }
 
         private void WritePingMessage(PingMessage pingMessage, IBufferWriter<byte> output)
         {
-            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.PingMessageType, Array.Empty<byte>());
+            var packedMessage = MessageDescriptor.PackMessage(HubProtocolConstants.PingMessageType, Array.Empty<byte>());
 
             output.Write(packedMessage);
         }
@@ -360,7 +365,7 @@ namespace Protobuf.Protocol
                 Error = closeMessage.Error
             };
 
-            var packedMessage = _messageDescriptor.PackMessage(HubProtocolConstants.CloseMessageType, protobufCloseMessage.ToByteArray());
+            var packedMessage = MessageDescriptor.PackMessage(HubProtocolConstants.CloseMessageType, protobufCloseMessage.ToByteArray());
 
             output.Write(packedMessage);
         }

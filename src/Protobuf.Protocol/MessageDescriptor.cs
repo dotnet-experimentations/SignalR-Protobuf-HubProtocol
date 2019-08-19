@@ -5,14 +5,14 @@ using System.Linq;
 
 namespace Protobuf.Protocol
 {
-    public class MessageDescriptor
+    public static class MessageDescriptor
     {
-        public ReadOnlySpan<byte> PackMessage(int messageType, ReadOnlySpan<byte> protobufMessage)
+        public static ReadOnlySpan<byte> PackMessage(int messageType, ReadOnlySpan<byte> protobufMessage)
         {
             return PackMessage(messageType, protobufMessage, null);
         }
 
-        public ReadOnlySpan<byte> PackMessage(int messageType, ReadOnlySpan<byte> protobufMessage, List<ArgumentDescriptor> arguments)
+        public static ReadOnlySpan<byte> PackMessage(int messageType, ReadOnlySpan<byte> protobufMessage, List<ArgumentDescriptor> arguments)
         {
             var argumentLength = arguments?.Sum(argument => argument.Argument.Length + ProtobufHubProtocolConstants.ARGUMENT_HEADER_LENGTH);
 
@@ -48,12 +48,16 @@ namespace Protobuf.Protocol
             }
         }
 
-        public byte GetMessageType(ReadOnlySpan<byte> message)
+        public static byte GetMessageType(ReadOnlySpan<byte> message)
         {
+            if (message.Length <= 0)
+            {
+                return 0;
+            }
             return message[0];
         }
 
-        public int GetTotalMessageLength(ReadOnlySpan<byte> message)
+        public static int GetTotalMessageLength(ReadOnlySpan<byte> message)
         {
             // We need at least 5 bytes to be get the total length 
             if (message.Length < 5)
@@ -65,7 +69,7 @@ namespace Protobuf.Protocol
         }
 
         // Without a complete header, we are not able to retrieve the protobuf object message
-        public ReadOnlySpan<byte> GetProtobufMessage(ReadOnlySpan<byte> message)
+        public static ReadOnlySpan<byte> GetProtobufMessage(ReadOnlySpan<byte> message)
         {
             if (message.Length <= ProtobufHubProtocolConstants.MESSAGE_HEADER_LENGTH)
             {
@@ -77,7 +81,7 @@ namespace Protobuf.Protocol
             return message.Slice(ProtobufHubProtocolConstants.MESSAGE_HEADER_LENGTH, protobufMessageLength);
         }
 
-        public List<ArgumentDescriptor> GetArguments(ReadOnlySpan<byte> message)
+        public static List<ArgumentDescriptor> GetArguments(ReadOnlySpan<byte> message)
         {
             var arguments = new List<ArgumentDescriptor>();
 

@@ -12,7 +12,6 @@ namespace Protobuf.Protocol.Microbenchmarks
     [MemoryDiagnoser]
     public class MessageDescriptorBenchmarks
     {
-        private MessageDescriptor _messageDescriptor = new MessageDescriptor();
         private Memory<byte> _packedPingMessage;
 
         [Params(1, 10, 100, 1000)]
@@ -25,13 +24,13 @@ namespace Protobuf.Protocol.Microbenchmarks
         [GlobalSetup]
         public void Setup()
         {
-            _packedPingMessage = _messageDescriptor.PackMessage(HubProtocolConstants.PingMessageType, new byte[N], new List<ArgumentDescriptor>()).ToArray();
+            _packedPingMessage = MessageDescriptor.PackMessage(HubProtocolConstants.PingMessageType, new byte[N], new List<ArgumentDescriptor>()).ToArray();
         }
 
         [Benchmark]
         public byte Ping()
         {
-            return _messageDescriptor.GetMessageType(_packedPingMessage.Span);
+            return MessageDescriptor.GetMessageType(_packedPingMessage.Span);
         }
 
         [Benchmark]
@@ -39,8 +38,8 @@ namespace Protobuf.Protocol.Microbenchmarks
         {
             //Allocation on purpore here for test
             var protobufInvocationMessage = new InvocationMessageProtobuf();
-            var packedInvocationMessage = _messageDescriptor.PackMessage(HubProtocolConstants.InvocationMessageType, protobufInvocationMessage.ToByteArray(), GetArgumentsDescriptors(N));
-            return _messageDescriptor.GetMessageType(packedInvocationMessage);
+            var packedInvocationMessage = MessageDescriptor.PackMessage(HubProtocolConstants.InvocationMessageType, protobufInvocationMessage.ToByteArray(), GetArgumentsDescriptors(N));
+            return MessageDescriptor.GetMessageType(packedInvocationMessage);
         }
     }
 }
