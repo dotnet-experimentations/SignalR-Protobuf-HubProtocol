@@ -43,17 +43,6 @@ namespace Protobuf.Protocol
             return HubProtocolExtensions.GetMessageBytes(this, message);
         }
 
-        private static ArraySegment<byte> GetArraySegment(in ReadOnlySequence<byte> input)
-        {
-            if (input.IsSingleSegment)
-            {
-                _ = MemoryMarshal.TryGetArray(input.First, out var arraySegment);
-                return arraySegment;
-            }
-
-            return new ArraySegment<byte>(input.ToArray());
-        }
-
         public bool TryParseMessage(ref ReadOnlySequence<byte> input, IInvocationBinder binder, out HubMessage message)
         {
             if (input.Length < ProtobufHubProtocolConstants.MESSAGE_HEADER_LENGTH)
@@ -62,9 +51,9 @@ namespace Protobuf.Protocol
                 return false;
             }
 
-            var arraySegment = GetArraySegment(input);
+            var span = input.IsSingleSegment ? input.First.Span : input.ToArray();
 
-            var totalSize = MessageDescriptor.GetTotalMessageLength(arraySegment.Array);
+            var totalSize = MessageDescriptor.GetTotalMessageLength(span) + ProtobufHubProtocolConstants.TYPE_AND_TOTAL_LENGTH_HEADER;
 
             if (input.Length < totalSize)
             {
@@ -74,7 +63,7 @@ namespace Protobuf.Protocol
 
             try
             {
-                message = CreateHubMessage(arraySegment.Array);
+                message = CreateHubMessage(span.Slice(0, totalSize));
             }
             catch (KeyNotFoundException ex)
             {
@@ -83,7 +72,7 @@ namespace Protobuf.Protocol
                 return false;
             }
 
-            input = input.Slice(totalSize + ProtobufHubProtocolConstants.TYPE_AND_TOTAL_LENGTH_HEADER);
+            input = input.Slice(totalSize);
 
             return message == null ? false : true;
         }

@@ -96,7 +96,7 @@ namespace Protobuf.Protocol
                 case 2:
                     return Encoding.UTF8.GetString(argumentDescriptor.Argument);
                 case 3:
-                    return BinaryPrimitives.ReadInt32LittleEndian(argumentDescriptor.Argument);
+                    return MemoryMarshal.Read<int>(argumentDescriptor.Argument);
                 case 4:
                     return MemoryMarshal.Read<double>(argumentDescriptor.Argument);
                 default:
