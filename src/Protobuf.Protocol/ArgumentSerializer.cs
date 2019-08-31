@@ -11,7 +11,7 @@ namespace Protobuf.Protocol
         private readonly Dictionary<Type, int> _protobufTypeToIndex;
         private readonly Dictionary<int, Type> _indexToProtobufType;
 
-        private readonly int _numberOfNoProtobufObjectHandle = 7;
+        private readonly int _numberOfNoProtobufObjectHandle = 8;
 
         internal ArgumentSerializer(IEnumerable<Type> protobufTypes)
         {
@@ -63,6 +63,9 @@ namespace Protobuf.Protocol
                     return new ArgumentDescriptor(ProtobufHubProtocolConstants.FLOAT_TYPE, BitConverter.GetBytes(item));
                 case byte item:
                     return new ArgumentDescriptor(ProtobufHubProtocolConstants.BYTE_TYPE, new[] { item });
+                case bool item:
+                    var value = (byte)(item ? 1 : 0);
+                    return new ArgumentDescriptor(ProtobufHubProtocolConstants.BOOL_TYPE, new[] { value });
                 case IMessage item:
                     return new ArgumentDescriptor(_protobufTypeToIndex[item.GetType()], item.ToByteArray());
                 default:
@@ -109,6 +112,8 @@ namespace Protobuf.Protocol
                     return BinaryPrimitivesExtensions.ReadFloat(argumentDescriptor.Argument);
                 case 7:
                     return BinaryPrimitivesExtensions.ReadByte(argumentDescriptor.Argument);
+                case 8:
+                    return BinaryPrimitivesExtensions.ReadByte(argumentDescriptor.Argument) == 1 ? true : false;
                 default:
                     return null;
             }

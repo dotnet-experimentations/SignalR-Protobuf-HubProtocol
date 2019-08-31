@@ -35,5 +35,7 @@ namespace Protobuf.Protocol
         public const int FLOAT_TYPE = 6;
 
         public const int BYTE_TYPE = 7;
+
+        public const int BOOL_TYPE = 8;
     }
 }
