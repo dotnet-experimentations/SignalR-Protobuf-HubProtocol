@@ -28,5 +28,7 @@ namespace Protobuf.Protocol
         public const int INT_TYPE = 3;
 
         public const int DOUBLE_TYPE = 4;
+
+        public const int CHAR_TYPE = 5;
     }
 }

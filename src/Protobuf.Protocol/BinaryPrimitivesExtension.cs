@@ -23,7 +23,12 @@ internal static class BinaryPrimitivesExtensions
             return MemoryMarshal.Read<double>(source);
       }
 
-      public static void WriteInt32(Span<byte> destination, int value)
+    public static char ReadChar(ReadOnlySpan<byte> source)
+    {
+        return MemoryMarshal.Read<char>(source);
+    }
+
+    public static void WriteInt32(Span<byte> destination, int value)
       {
             if (BitConverter.IsLittleEndian)
             {

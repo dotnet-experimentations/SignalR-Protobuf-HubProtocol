@@ -119,11 +119,37 @@ namespace Protobuf.Protocol.Tests
 
             var protobufHubProtocol = new ProtobufHubProtocol(protobufType, logger);
 
-            var encodedMessage = new ReadOnlySequence<byte>(new byte[] { 6, 0, 0, 0});
+            var encodedMessage = new ReadOnlySequence<byte>(new byte[] { 6, 0, 0, 0} );
             var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var pingMessage);
 
             Assert.False(result);
             Assert.Null(pingMessage);
+        }
+
+        [Theory]
+        [InlineData('a')]
+        [InlineData('#')]
+        [InlineData('F')]
+        [InlineData(' ')]
+        [InlineData('\n')]
+        public void Protocol_Should_handle_Char_Type(char item)
+        {
+            var logger = NullLogger<ProtobufHubProtocol>.Instance;
+            var binder = new Mock<IInvocationBinder>();
+            var protobufType = Array.Empty<Type>();
+
+            var protobufHubProtocol = new ProtobufHubProtocol(protobufType, logger);
+            var writer = new ArrayBufferWriter<byte>();
+            var streamItemMessage = new StreamItemMessage("123", item);
+
+            protobufHubProtocol.WriteMessage(streamItemMessage, writer);
+            var encodedMessage = new ReadOnlySequence<byte>(writer.WrittenSpan.ToArray());
+            var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var resultStreamItemMessage);
+
+            Assert.True(result);
+            Assert.NotNull(resultStreamItemMessage);
+            var t = ((StreamItemMessage)resultStreamItemMessage).Item;
+            Assert.Equal(item, t);
         }
     }
 }
