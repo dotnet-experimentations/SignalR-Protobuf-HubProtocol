@@ -184,7 +184,9 @@ namespace Protobuf.Protocol
 
             protobufCloseMessage.MergeFrom(protobufMessage.ToArray());
 
-            return new CloseMessage(protobufCloseMessage.Error);
+            var error = string.IsNullOrEmpty(protobufCloseMessage.Error) ? null : protobufCloseMessage.Error;
+
+            return new CloseMessage(error);
         }
 
         public void WriteMessage(HubMessage message, IBufferWriter<byte> output)
@@ -351,7 +353,7 @@ namespace Protobuf.Protocol
         {
             var protobufCloseMessage = new CloseMessageProtobuf
             {
-                Error = closeMessage.Error
+                Error = closeMessage.Error ?? ""
             };
 
             var packedMessage = MessageDescriptor.PackMessage(HubProtocolConstants.CloseMessageType, protobufCloseMessage.ToByteArray());
