@@ -30,5 +30,7 @@ namespace Protobuf.Protocol
         public const int DOUBLE_TYPE = 4;
 
         public const int CHAR_TYPE = 5;
+
+        public const int FLOAT_TYPE = 6;
     }
 }

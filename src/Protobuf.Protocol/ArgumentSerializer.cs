@@ -1,9 +1,7 @@
 ﻿using Google.Protobuf;
 using System;
-using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Protobuf.Protocol
@@ -13,7 +11,7 @@ namespace Protobuf.Protocol
         private readonly Dictionary<Type, int> _protobufTypeToIndex;
         private readonly Dictionary<int, Type> _indexToProtobufType;
 
-        private readonly int _numberOfNoProtobufObjectHandle = 5;
+        private readonly int _numberOfNoProtobufObjectHandle = 6;
 
         internal ArgumentSerializer(IEnumerable<Type> protobufTypes)
         {
@@ -61,6 +59,8 @@ namespace Protobuf.Protocol
                     return new ArgumentDescriptor(ProtobufHubProtocolConstants.DOUBLE_TYPE, BitConverter.GetBytes(item));
                 case char item:
                     return new ArgumentDescriptor(ProtobufHubProtocolConstants.CHAR_TYPE, BitConverter.GetBytes(item));
+                case float item:
+                    return new ArgumentDescriptor(ProtobufHubProtocolConstants.FLOAT_TYPE, BitConverter.GetBytes(item));
                 case IMessage item:
                     return new ArgumentDescriptor(_protobufTypeToIndex[item.GetType()], item.ToByteArray());
                 default:
@@ -103,6 +103,8 @@ namespace Protobuf.Protocol
                     return BinaryPrimitivesExtensions.ReadDouble(argumentDescriptor.Argument);
                 case 5:
                     return BinaryPrimitivesExtensions.ReadChar(argumentDescriptor.Argument);
+                case 6:
+                    return BinaryPrimitivesExtensions.ReadFloat(argumentDescriptor.Argument);
                 default:
                     return null;
             }

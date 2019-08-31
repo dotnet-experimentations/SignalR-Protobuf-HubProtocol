@@ -148,8 +148,32 @@ namespace Protobuf.Protocol.Tests
 
             Assert.True(result);
             Assert.NotNull(resultStreamItemMessage);
-            var t = ((StreamItemMessage)resultStreamItemMessage).Item;
-            Assert.Equal(item, t);
+            Assert.Equal(item, ((StreamItemMessage)resultStreamItemMessage).Item);
+        }
+
+        [Theory]
+        [InlineData(1.234)]
+        [InlineData(2.456781)]
+        [InlineData(0)]
+        [InlineData(float.MinValue)]
+        [InlineData(float.MaxValue)]
+        public void Protocol_Should_handle_Float_Type(float item)
+        {
+            var logger = NullLogger<ProtobufHubProtocol>.Instance;
+            var binder = new Mock<IInvocationBinder>();
+            var protobufType = Array.Empty<Type>();
+
+            var protobufHubProtocol = new ProtobufHubProtocol(protobufType, logger);
+            var writer = new ArrayBufferWriter<byte>();
+            var streamItemMessage = new StreamItemMessage("123", item);
+
+            protobufHubProtocol.WriteMessage(streamItemMessage, writer);
+            var encodedMessage = new ReadOnlySequence<byte>(writer.WrittenSpan.ToArray());
+            var result = protobufHubProtocol.TryParseMessage(ref encodedMessage, binder.Object, out var resultStreamItemMessage);
+
+            Assert.True(result);
+            Assert.NotNull(resultStreamItemMessage);
+            Assert.Equal(item, ((StreamItemMessage)resultStreamItemMessage).Item);
         }
     }
 }

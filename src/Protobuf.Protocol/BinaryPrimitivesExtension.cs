@@ -28,6 +28,11 @@ internal static class BinaryPrimitivesExtensions
         return MemoryMarshal.Read<char>(source);
     }
 
+    public static float ReadFloat(ReadOnlySpan<byte> source)
+    {
+        return MemoryMarshal.Read<float>(source);
+    }
+
     public static void WriteInt32(Span<byte> destination, int value)
       {
             if (BitConverter.IsLittleEndian)
