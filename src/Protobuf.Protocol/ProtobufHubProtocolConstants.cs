@@ -16,12 +16,13 @@ namespace Protobuf.Protocol
 
         public const int ARG_LENGTH_PLACEHOLDER_SIZE = 4;
         
-
         public const int MESSAGE_HEADER_LENGTH = 9;
 
         public const int ARGUMENT_HEADER_LENGTH = 8;
 
         public const int TYPE_AND_TOTAL_LENGTH_HEADER = 5;
+
+        
 
         public const int STRING_TYPE = 2;
 
@@ -32,5 +33,7 @@ namespace Protobuf.Protocol
         public const int CHAR_TYPE = 5;
 
         public const int FLOAT_TYPE = 6;
+
+        public const int BYTE_TYPE = 7;
     }
 }
